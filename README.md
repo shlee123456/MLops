@@ -1,6 +1,6 @@
 # MLOps Chatbot Project
 
-사내 GPU 자원을 활용한 커스텀 챗봇 구축 프로젝트입니다. LLM Fine-tuning부터 프로덕션 배포까지 전체 MLOps 파이프라인을 구현합니다.
+GPU 자원을 활용한 커스텀 챗봇 구축 프로젝트입니다. LLM Fine-tuning부터 프로덕션 배포까지 전체 MLOps 파이프라인을 구현합니다.
 
 ## 프로젝트 목표
 
