@@ -98,12 +98,12 @@ python src/check_gpu.py
 - [x] Gradio UI 데모 (http://localhost:7860)
 - [ ] 성능 벤치마크 (선택사항)
 
-### Phase 2: Fine-tuning 🔄 다음 단계
-- [ ] 학습 데이터 준비
-- [ ] 합성 데이터 생성
-- [ ] LoRA fine-tuning
-- [ ] QLoRA fine-tuning (4-bit)
-- [ ] MLflow 실험 추적
+### Phase 2: Fine-tuning 🔄 진행 중
+- [x] 학습 데이터 준비 (HuggingFace no_robots: 9,499 examples)
+- [x] 합성 데이터 생성 스크립트 (MLOps/DevOps 특화)
+- [ ] LoRA fine-tuning (준비 완료, 실행 대기)
+- [ ] QLoRA fine-tuning (4-bit, 준비 완료)
+- [x] MLflow 실험 추적 설정
 
 ### Phase 3: 최적화 (5-7일)
 - [ ] vLLM 서빙 구축
@@ -147,8 +147,13 @@ python src/01_test_base_model.py
 # Gradio 데모 실행
 python src/02_gradio_demo.py
 
+# 학습 데이터 준비
+python src/data/01_load_dataset.py  # 공개 데이터셋
+python src/data/02_generate_synthetic_data.py  # 합성 데이터
+
 # Fine-tuning
-python src/train/01_lora_finetune.py
+python src/train/01_lora_finetune.py  # LoRA
+python src/train/02_qlora_finetune.py  # QLoRA (4-bit)
 
 # MLflow UI
 mlflow ui
