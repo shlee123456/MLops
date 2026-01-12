@@ -1,0 +1,7 @@
+run_id,run_name,status,start_time,end_time,model_name,method,learning_rate,batch_size,num_epochs,lora_r,lora_alpha,train_loss,eval_loss,train_runtime,train_samples_per_second
+d4c2dc2985314883a6d9187c8dd36413,qlora-20251216-104521,FINISHED,1765849521603,1765854153582.0,meta-llama/Meta-Llama-3-8B-Instruct,QLoRA,0.0002,4,3,N/A,N/A,N/A,N/A,N/A,N/A
+f28ad59014e14acf8cf1ba35d44205b2,lora-20251216-104245,FINISHED,1765849365529,1765849366708.0,meta-llama/Meta-Llama-3-8B-Instruct,N/A,0.0002,4,3,N/A,N/A,N/A,N/A,N/A,N/A
+97e709c9a8e248749dd810f660e355fb,lora-20251214-105653,RUNNING,1765677413698,,meta-llama/Meta-Llama-3-8B-Instruct,N/A,0.0002,2,3,N/A,N/A,N/A,N/A,N/A,N/A
+843bed1f46a44e229e4589550a337a56,lora-20251214-105350,FINISHED,1765677230312,1765677234523.0,meta-llama/Meta-Llama-3-8B-Instruct,N/A,0.0002,2,3,N/A,N/A,N/A,N/A,N/A,N/A
+e0074c1922284acdacac454e04515eff,lora-20251214-105243,FINISHED,1765677163193,1765677164380.0,meta-llama/Meta-Llama-3-8B-Instruct,N/A,0.0002,4,3,N/A,N/A,N/A,N/A,N/A,N/A
+5c7f6c62c4cc40b1b43fbb37d5a2580f,lora-20251213-204030,RUNNING,1765626030993,,meta-llama/Meta-Llama-3-8B-Instruct,N/A,0.0002,2,3,N/A,N/A,N/A,N/A,N/A,N/A

@@ -1,0 +1,97 @@
+{
+  "dashboard": {
+    "title": "MLOps System Overview",
+    "tags": ["mlops", "system"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "type": "graph",
+        "title": "GPU Memory Usage",
+        "targets": [
+          {
+            "expr": "node_nvidia_gpu_memory_used_bytes / node_nvidia_gpu_memory_total_bytes * 100",
+            "legendFormat": "GPU {{gpu}} Memory %",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "min": 0, "max": 100},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 2,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "type": "graph",
+        "title": "GPU Utilization",
+        "targets": [
+          {
+            "expr": "node_nvidia_gpu_utilization",
+            "legendFormat": "GPU {{gpu}} Util %",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "min": 0, "max": 100},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "type": "graph",
+        "title": "CPU Usage",
+        "targets": [
+          {
+            "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+            "legendFormat": "CPU Usage %",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "min": 0, "max": 100},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 4,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "type": "graph",
+        "title": "Memory Usage",
+        "targets": [
+          {
+            "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+            "legendFormat": "Memory Usage %",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "min": 0, "max": 100},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 5,
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16},
+        "type": "graph",
+        "title": "Container CPU Usage",
+        "targets": [
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_service!=\"\"}[5m]) * 100",
+            "legendFormat": "{{container_label_com_docker_compose_service}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "min": 0},
+          {"format": "short"}
+        ]
+      }
+    ]
+  }
+}

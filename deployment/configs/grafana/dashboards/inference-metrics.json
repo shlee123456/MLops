@@ -1,0 +1,103 @@
+{
+  "dashboard": {
+    "title": "Inference Metrics",
+    "tags": ["mlops", "inference", "serving"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "type": "graph",
+        "title": "Requests per Second",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{service=\"fastapi\"}[1m])",
+            "legendFormat": "{{method}} {{path}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "min": 0},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 2,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "type": "graph",
+        "title": "Request Latency",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{service=\"fastapi\"}[5m]))",
+            "legendFormat": "p95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket{service=\"fastapi\"}[5m]))",
+            "legendFormat": "p50",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "min": 0},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+        "type": "logs",
+        "title": "Inference Logs",
+        "targets": [
+          {
+            "expr": "{job=\"inference\"}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "wrapLogMessage": true,
+          "sortOrder": "Descending"
+        }
+      },
+      {
+        "id": 4,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "type": "stat",
+        "title": "Total Tokens Generated",
+        "targets": [
+          {
+            "expr": "sum(rate({job=\"inference\"} | json | unwrap tokens_generated [5m]))",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "textMode": "value_and_name",
+          "colorMode": "value",
+          "graphMode": "area"
+        }
+      },
+      {
+        "id": 5,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "type": "stat",
+        "title": "Average Latency",
+        "targets": [
+          {
+            "expr": "avg(rate({job=\"inference\"} | json | unwrap latency_ms [5m]))",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "textMode": "value_and_name",
+          "colorMode": "value",
+          "graphMode": "area",
+          "unit": "ms"
+        }
+      }
+    ]
+  }
+}

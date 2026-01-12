@@ -1,0 +1,71 @@
+{
+  "model_name": "meta-llama/Meta-Llama-3-8B-Instruct",
+  "device": "cuda",
+  "use_quantization": true,
+  "timestamp": "2025-12-15T14:51:43.014400",
+  "load_time": 6.679319620132446,
+  "latency": [
+    {
+      "prompt": "What is artificial intelligence?",
+      "avg_time": 2.495461622873942,
+      "std_time": 0.13139895556640205,
+      "min_time": 2.402268886566162,
+      "max_time": 2.6812875270843506,
+      "avg_tokens_per_sec": 40.18014937697319,
+      "num_tokens": 100
+    },
+    {
+      "prompt": "Explain the concept of neural networks.",
+      "avg_time": 2.4018598397572837,
+      "std_time": 0.00035329666707260555,
+      "min_time": 2.401597023010254,
+      "max_time": 2.4023592472076416,
+      "avg_tokens_per_sec": 41.63440368506895,
+      "num_tokens": 100
+    },
+    {
+      "prompt": "Write a Python function to calculate prime numbers.",
+      "avg_time": 2.403629461924235,
+      "std_time": 0.0003308978659001707,
+      "min_time": 2.4031636714935303,
+      "max_time": 2.4039013385772705,
+      "avg_tokens_per_sec": 41.603751110336326,
+      "num_tokens": 100
+    },
+    {
+      "prompt": "What are the key principles of DevOps?",
+      "avg_time": 2.4043784936269126,
+      "std_time": 0.0010746044968738206,
+      "min_time": 2.402958631515503,
+      "max_time": 2.405557632446289,
+      "avg_tokens_per_sec": 41.59079788942978,
+      "num_tokens": 100
+    }
+  ],
+  "throughput": [
+    {
+      "max_tokens": 50,
+      "actual_tokens": 50,
+      "generation_time": 1.2226974964141846,
+      "tokens_per_sec": 40.8931891548281
+    },
+    {
+      "max_tokens": 100,
+      "actual_tokens": 100,
+      "generation_time": 2.403329610824585,
+      "tokens_per_sec": 41.60894100817486
+    },
+    {
+      "max_tokens": 200,
+      "actual_tokens": 200,
+      "generation_time": 4.765304327011108,
+      "tokens_per_sec": 41.97003722644591
+    }
+  ],
+  "memory": {
+    "initial_allocated_gb": 1.960592384,
+    "initial_reserved_gb": 2.315255808,
+    "peak_allocated_gb": 2.08246528,
+    "peak_reserved_gb": 2.315255808
+  }
+}

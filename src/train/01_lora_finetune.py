@@ -7,6 +7,7 @@ MLflow로 실험을 추적합니다.
 """
 
 import os
+import sys
 import json
 import torch
 from pathlib import Path
@@ -15,6 +16,7 @@ from dotenv import load_dotenv
 
 from datasets import load_dataset, Dataset
 from transformers import (
+    TrainerCallback,
     AutoTokenizer,
     AutoModelForCausalLM,
     TrainingArguments,
@@ -37,6 +39,10 @@ except ImportError:
     print("  Run: pip install mlflow")
 
 load_dotenv()
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
+from src.utils.logging_utils import TrainingLogger, SystemLogger
 
 
 def load_training_data(data_path: str):

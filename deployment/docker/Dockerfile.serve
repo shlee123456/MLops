@@ -1,0 +1,45 @@
+FROM nvidia/cuda:12.1.0-devel-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    python3.10 \
+    python3-pip \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create symbolic links
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
+# Install PyTorch with CUDA support
+RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# Install vLLM and dependencies
+RUN pip install --no-cache-dir \
+    vllm==0.2.7 \
+    transformers==4.36.0 \
+    accelerate==0.25.0 \
+    sentencepiece \
+    protobuf
+
+# Copy application code
+COPY src/ /app/src/
+
+# Create logs directory
+RUN mkdir -p /logs
+
+EXPOSE 8000
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+CMD ["python", "-m", "vllm.entrypoints.openai.api_server", \
+     "--model", "/models/base/meta-llama/Meta-Llama-3-8B-Instruct", \
+     "--host", "0.0.0.0", \
+     "--port", "8000"]
