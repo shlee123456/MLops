@@ -181,6 +181,13 @@ python -m vllm.entrypoints.api_server \
 - 인터넷 연결 확인
 - 캐시 디렉토리 권한 확인
 
+## 상세 문서
+
+- [vLLM 서버 가이드](docs/VLLM_GUIDE.md) - vLLM 서빙 상세 가이드
+- [로깅 시스템 가이드](docs/LOGGING_GUIDE.md) - 구조화된 로깅 사용법
+- [프로젝트 현황](docs/PROJECT_STATUS.md) - 진행 상황 및 로드맵
+- [배포 가이드](deployment/README.md) - Docker Compose 배포
+
 ## 참고 자료
 
 - [Transformers Documentation](https://huggingface.co/docs/transformers)
