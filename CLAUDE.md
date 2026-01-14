@@ -26,6 +26,7 @@ src/
 ├── serve/       → src/serve/CLAUDE.md
 ├── data/        → src/data/CLAUDE.md
 ├── evaluate/    → src/evaluate/CLAUDE.md
+├── deploy/      → src/deploy/CLAUDE.md   # HF Hub 업로드
 └── utils/       → src/utils/CLAUDE.md
 deployment/      → deployment/CLAUDE.md
 models/base/          # HuggingFace 캐시
@@ -78,6 +79,11 @@ python src/check_gpu.py           # GPU 확인
 python src/train/01_lora_finetune.py
 python src/serve/01_vllm_server.py
 mlflow ui --port 5000
+
+# HuggingFace Hub 업로드
+python src/deploy/01_upload_to_hub.py \
+    --adapter-path models/fine-tuned/lora-mistral-custom \
+    --repo-name llama3-8b-ko-chat-v1 --public
 
 # Docker (전체 스택)
 docker-compose up -d
