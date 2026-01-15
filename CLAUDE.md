@@ -8,6 +8,7 @@ LLM Fine-tuning → 프로덕션 배포 MLOps 파이프라인
 - **베이스 모델**: LLaMA-3-8B-Instruct
 - **GPU**: RTX 5090 (31GB) + RTX 5060 Ti (15GB)
 - **배포된 모델**: [2shlee/llama3-8b-ko-chat-v1](https://huggingface.co/2shlee/llama3-8b-ko-chat-v1)
+- **리팩토링**: 클린 아키텍처 적용 완료 → `src/serve/CLAUDE.md`
 
 ## 기술 스택
 
@@ -18,22 +19,27 @@ LLM Fine-tuning → 프로덕션 배포 MLOps 파이프라인
 | MLOps | MLflow, DVC, LangChain |
 | Monitoring | Prometheus, Grafana, Loki, structlog |
 | DevOps | Docker, Docker Compose |
+| Database | SQLAlchemy 2.0+, Alembic (마이그레이션), SQLite |
+| Config | pydantic-settings |
 
 ## 디렉토리 구조
 
 ```
 src/
 ├── train/       → src/train/CLAUDE.md
-├── serve/       → src/serve/CLAUDE.md
+├── serve/       → src/serve/CLAUDE.md (클린 아키텍처 적용)
+│   ├── main.py              # FastAPI 엔트리포인트
+│   ├── database.py          # SQLAlchemy 설정
+│   ├── core/                # 설정, LLM 클라이언트
+│   ├── models/              # ORM 모델
+│   ├── schemas/             # Pydantic 스키마
+│   ├── cruds/               # DB CRUD 함수
+│   └── routers/             # API 라우터
 ├── data/        → src/data/CLAUDE.md
 ├── evaluate/    → src/evaluate/CLAUDE.md
-├── deploy/      → src/deploy/CLAUDE.md   # HF Hub 업로드
-├── utils/       → src/utils/CLAUDE.md
-├── check_gpu.py           # GPU 환경 확인
-├── 01_test_base_model.py  # 베이스 모델 추론 테스트
-├── 02_gradio_demo.py      # Gradio 데모 UI
-└── 03_benchmark.py        # 성능 벤치마크
+└── utils/       → src/utils/CLAUDE.md
 deployment/      → deployment/CLAUDE.md
+tests/serve/          # API 테스트
 models/
 ├── base/             # HuggingFace 캐시
 ├── fine-tuned/       # LoRA 어댑터 저장
@@ -60,6 +66,11 @@ VLLM_ENDPOINT            # vLLM 서버 (기본: http://localhost:8000)
 GPU_MEMORY_UTILIZATION   # GPU 메모리 사용률 (기본: 0.9)
 MAX_MODEL_LEN            # 최대 시퀀스 (기본: 4096)
 MODEL_PATH               # 모델 경로
+API_KEY                  # API 인증 키 (기본: your-secret-api-key)
+ENABLE_AUTH              # 인증 활성화 (기본: false)
+
+# 데이터베이스
+DATABASE_URL             # DB 연결 (기본: sqlite:///./data/chat.db)
 
 # 로깅
 LOG_DIR                  # 로그 디렉토리 (기본: ./logs)
@@ -92,17 +103,16 @@ python src/train/02_qlora_finetune.py
 mlflow ui --port 5000
 
 # 서빙
-python src/serve/01_vllm_server.py
-python src/02_gradio_demo.py
+python src/serve/01_vllm_server.py   # vLLM :8000
+python -m src.serve.main             # FastAPI :8080 (클린 아키텍처)
 
-# HuggingFace Hub 업로드
-python src/deploy/01_upload_to_hub.py \
-    --adapter-path models/fine-tuned/lora-mistral-custom/checkpoint-1188 \
-    --repo-name llama3-8b-ko-chat-v1 --public
+# 테스트
+python -m pytest tests/serve/ -v
 
-# HuggingFace Hub 다운로드 & 테스트
-python src/deploy/02_download_from_hub.py \
-    --repo-id 2shlee/llama3-8b-ko-chat-v1 --test
+# DB 마이그레이션 (Alembic) - 프로젝트 루트에서 실행
+alembic current                        # 현재 상태
+alembic revision --autogenerate -m "설명"  # 마이그레이션 생성
+alembic upgrade head                   # 적용
 
 # Docker (전체 스택)
 docker-compose up -d
