@@ -39,7 +39,9 @@ src/
 └── utils/       → src/utils/CLAUDE.md
 deployment/      → deployment/CLAUDE.md
 db/                   # Alembic 마이그레이션
-docs/plans/           # 리팩토링 계획 문서
+docs/
+├── guides/           # 참조 가이드 (LOGGING.md, VLLM.md)
+└── plans/            # 리팩토링 계획 문서
 models/base/          # HuggingFace 캐시
 models/fine-tuned/    # LoRA 어댑터 저장
 data/                 # 학습 데이터
