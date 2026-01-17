@@ -90,3 +90,12 @@ grafana_data/
 
 # Context (session history & terminal logs)
 .context/
+
+# SQLite database
+*.db
+
+# pyenv
+.python-version
+
+# Backup files
+*.old

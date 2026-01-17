@@ -2,82 +2,103 @@
 
 > **상위 문서**: [/CLAUDE.md](../../CLAUDE.md) - 프로젝트 전체 규칙, 환경변수, 세션 히스토리/터미널 로그 기록 방법 참조
 
-vLLM 기반 고성능 추론 + FastAPI 래퍼
+vLLM 기반 고성능 추론 + FastAPI 래퍼 (클린 아키텍처)
 
-## 파일
+## 서브 CLAUDE.md 목록
 
-| 파일 | 설명 |
+| 경로 | 설명 |
 |------|------|
-| `01_vllm_server.py` | vLLM OpenAI 호환 서버 |
-| `02_vllm_client.py` | VLLMClient 클래스 |
-| `03_gradio_vllm_demo.py` | Gradio UI |
-| `04_fastapi_server.py` | FastAPI 래퍼 (인증, 로깅) |
-| `05_prompt_templates.py` | 프롬프트 템플릿 |
-| `06_benchmark_vllm.py` | 벤치마크 |
-| `07_langchain_pipeline.py` | LangChain 통합 |
+| [core/CLAUDE.md](core/CLAUDE.md) | 설정, vLLM 클라이언트 |
+| [models/CLAUDE.md](models/CLAUDE.md) | ORM 모델 |
+| [schemas/CLAUDE.md](schemas/CLAUDE.md) | Pydantic 스키마 |
+| [cruds/CLAUDE.md](cruds/CLAUDE.md) | CRUD 함수 |
+| [routers/CLAUDE.md](routers/CLAUDE.md) | API 라우터 |
 
-## 실행 순서
+## 디렉토리 구조
+
+```
+src/serve/
+├── main.py                    # FastAPI 앱 엔트리포인트 ⭐
+├── database.py                # SQLAlchemy 설정
+├── core/
+│   ├── config.py              # pydantic-settings
+│   └── llm.py                 # vLLM 클라이언트 래퍼
+├── models/
+│   └── models.py              # ORM (Chat, Message, LLMConfig)
+├── schemas/
+│   ├── chat.py, completion.py, common.py
+├── cruds/
+│   └── chat.py                # CRUD 함수
+├── routers/
+│   ├── router.py              # 라우터 통합
+│   ├── dependency.py          # 의존성 주입
+│   ├── health.py, chat.py, models.py, completion.py
+├── utils/
+│
+│── # 레거시 (참조용)
+├── 01_vllm_server.py          # vLLM 서버 실행
+├── 02_vllm_client.py          # VLLMClient 클래스
+├── 03_gradio_vllm_demo.py     # Gradio UI
+├── 04_fastapi_server.py       # 이전 단일 파일 버전
+├── 05_prompt_templates.py     # 프롬프트 템플릿
+├── 06_benchmark_vllm.py       # 벤치마크
+└── 07_langchain_pipeline.py   # LangChain 통합
+```
+
+## 실행 방법
 
 ```bash
 # 1. vLLM 서버 먼저
 python src/serve/01_vllm_server.py  # :8000
 
-# 2. FastAPI 래퍼 (vLLM 필요)
-python src/serve/04_fastapi_server.py  # :8080
+# 2. FastAPI 서버 (클린 아키텍처 버전)
+python -m src.serve.main  # :8080
 
-# 또는 Docker
-docker-compose up vllm-server fastapi-server
+# 또는 레거시 버전
+python src/serve/04_fastapi_server.py  # :8080
 ```
 
 ## API 엔드포인트
 
-| 서비스 | 포트 | 엔드포인트 |
-|--------|------|------------|
-| vLLM | 8000 | `POST /v1/chat/completions`, `/v1/completions` |
-| FastAPI | 8080 | 위 + `GET /health`, `/metrics` |
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| GET | `/` | API 정보 |
+| GET | `/health` | 헬스 체크 |
+| GET | `/metrics` | 메트릭 |
+| GET | `/v1/models` | 모델 목록 |
+| POST | `/v1/chat/completions` | 채팅 완성 |
+| POST | `/v1/completions` | 텍스트 완성 |
+| POST | `/v1/chats` | 채팅 세션 생성 |
+| GET | `/v1/chats` | 채팅 목록 |
+| GET | `/v1/chats/{id}` | 채팅 조회 |
+| DELETE | `/v1/chats/{id}` | 채팅 삭제 |
+| GET | `/v1/chats/{id}/messages` | 메시지 목록 |
 
-## VLLMClient 사용
+## 의존성 관계
 
-```python
-from serve.vllm_client import VLLMClient
-# 또는
-from src.serve.vllm_client import VLLMClient
-
-client = VLLMClient(base_url="http://localhost:8000")
-
-# 동기 호출
-response = client.chat(messages=[{"role": "user", "content": "Hello"}])
-
-# 스트리밍
-async for chunk in client.chat_stream(messages):
-    print(chunk)
+```
+config.py ← database.py ← models.py ← cruds/chat.py
+    ↓                         ↓
+  llm.py               schemas/*.py
+    ↓                         ↓
+routers/*.py ← dependency.py
+    ↓
+  main.py
 ```
 
-## Pydantic 모델
-
-```python
-class ChatCompletionRequest(BaseModel):
-    messages: List[Message] = Field(..., description="대화 메시지")
-    temperature: float = Field(0.7, ge=0.0, le=2.0)
-    max_tokens: int = Field(512, ge=1, le=4096)
-    stream: bool = Field(False)
-```
-
-## 스트리밍 (SSE)
-
-```python
-async def stream_generator():
-    async for chunk in client.chat_stream(messages):
-        yield f"data: {json.dumps(chunk)}\n\n"
-
-return StreamingResponse(stream_generator(), media_type="text/event-stream")
-```
-
-## vLLM 최적화 옵션
+## 테스트
 
 ```bash
---gpu-memory-utilization 0.9
---max-model-len 4096
---tensor-parallel-size 2      # 멀티 GPU
---quantization awq            # AWQ 양자화
+pytest tests/serve/ -v
 ```
+
+## 환경 변수
+
+| 변수 | 기본값 | 설명 |
+|------|--------|------|
+| `VLLM_BASE_URL` | http://localhost:8000/v1 | vLLM 서버 |
+| `FASTAPI_HOST` | 0.0.0.0 | 서버 호스트 |
+| `FASTAPI_PORT` | 8080 | 서버 포트 |
+| `DATABASE_URL` | sqlite+aiosqlite:///./mlops_chat.db | DB |
+| `ENABLE_AUTH` | false | 인증 활성화 |
+| `API_KEY` | your-secret-api-key | API 키 |

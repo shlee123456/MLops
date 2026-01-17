@@ -4,6 +4,32 @@ Claude Code에서 효과적인 CLAUDE.md를 작성하고 관리하기 위한 단
 
 ---
 
+## ⚠️ 필수 실행 규칙 (모든 작업 전 확인)
+
+> **이 규칙은 모든 작업에서 반드시 준수해야 합니다.**
+
+### 1. 터미널 로그 기록
+모든 Bash 명령어(빌드, 테스트, 설치, 실행) 실행 시 `.context/terminal/`에 로그 저장:
+```bash
+[명령어] 2>&1 | tee .context/terminal/[명령어]_$(date +%s).log
+```
+
+### 2. 서브 CLAUDE.md 관리
+- 새 디렉토리/모듈 생성 시 → 해당 디렉토리에 서브 CLAUDE.md 생성
+- 기존 구조 변경 시 → 관련 서브 CLAUDE.md 업데이트
+- 서브 CLAUDE.md는 반드시 루트 CLAUDE.md 참조
+
+### 3. 세션 관리
+- **세션 시작**: `.context/history/`에서 최근 기록 확인, 이전 TODO 파악
+- **세션 종료**: `.context/history/session_YYYY-MM-DD_HH-MM.md`에 작업 내용 기록
+
+### 4. 작업 완료 체크리스트
+- [ ] 터미널 로그 저장했는가?
+- [ ] 서브 CLAUDE.md 업데이트 필요한가?
+- [ ] 세션 히스토리 기록했는가?
+
+---
+
 ## 목표
 
 - **루트 CLAUDE.md**가 모든 서브 CLAUDE.md를 통제
