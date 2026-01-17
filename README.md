@@ -36,6 +36,7 @@ mlops-project/
 │   ├── serve/              # FastAPI 서빙 (클린 아키텍처)
 │   │   ├── main.py         # FastAPI 엔트리포인트
 │   │   ├── database.py     # SQLAlchemy 설정
+│   │   ├── migrations/     # Alembic 마이그레이션
 │   │   ├── core/           # 설정, LLM 클라이언트
 │   │   ├── models/         # ORM 모델
 │   │   ├── schemas/        # Pydantic 스키마
@@ -45,7 +46,7 @@ mlops-project/
 │   ├── evaluate/           # 평가 스크립트
 │   └── utils/              # 유틸리티 (로깅 등)
 ├── deployment/             # Docker Compose 배포
-├── db/                     # Alembic 마이그레이션
+├── tests/                  # 테스트 (pytest)
 ├── docs/
 │   ├── guides/             # 참조 가이드 (LOGGING.md, VLLM.md)
 │   └── plans/              # 리팩토링 계획 문서
@@ -78,7 +79,7 @@ pip install -r requirements.txt
 ### 2. 환경 변수 설정
 
 ```bash
-cp .env.example .env
+cp env.example .env
 # .env 파일을 편집하여 필요한 토큰 입력
 ```
 
@@ -132,8 +133,10 @@ python src/check_gpu.py
 ### Phase 4: 프로덕션화
 - [x] FastAPI 백엔드 (클린 아키텍처 적용)
 - [x] SQLAlchemy + Alembic DB 설정
+- [x] vLLM 연동 테스트
+- [x] Docker Compose 설정
 - [ ] 스트리밍 응답
-- [ ] Docker 컨테이너화
+- [ ] Kubernetes 배포
 - [ ] 모니터링 (Prometheus + Grafana)
 - [ ] CI/CD 파이프라인
 
@@ -171,13 +174,16 @@ python src/data/02_generate_synthetic_data.py  # 합성 데이터
 python src/train/01_lora_finetune.py      # LoRA
 
 # FastAPI 서버 실행 (클린 아키텍처)
-python src/serve/main.py
+python -m src.serve.main
+
+# 테스트 실행
+python -m pytest tests/serve/ -v
 
 # MLflow UI
 mlflow ui --port 5000
 
-# DB 마이그레이션 (Alembic)
-cd db
+# DB 마이그레이션 (Alembic) - 프로젝트 루트에서 실행
+alembic current                             # 현재 버전 확인
 alembic revision --autogenerate -m "설명"  # 마이그레이션 생성
 alembic upgrade head                        # 최신 버전 적용
 
@@ -204,6 +210,7 @@ docker-compose up -d
 
 ## 상세 문서
 
+- [서빙 아키텍처](src/serve/CLAUDE.md) - FastAPI 클린 아키텍처 가이드
 - [vLLM 서버 가이드](docs/guides/VLLM.md) - vLLM 서빙 상세 가이드
 - [로깅 시스템 가이드](docs/guides/LOGGING.md) - 구조화된 로깅 사용법
 - [클린 아키텍처 리팩토링 계획](docs/plans/clean-architecture-refactoring.md) - 리팩토링 로드맵
