@@ -87,3 +87,6 @@ grafana_data/
 *.tmp
 *.bak
 .cache/
+
+# Context (session history & terminal logs)
+.context/
