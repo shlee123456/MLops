@@ -23,10 +23,22 @@ Claude Code에서 효과적인 CLAUDE.md를 작성하고 관리하기 위한 단
 - **세션 시작**: `.context/history/`에서 최근 기록 확인, 이전 TODO 파악
 - **세션 종료**: `.context/history/session_YYYY-MM-DD_HH-MM.md`에 작업 내용 기록
 
-### 4. 작업 완료 체크리스트
+### 4. Git 커밋 규칙
+- 커밋 메시지는 **한글**로 작성
+- `Co-Authored-By` 태그 **사용 금지** (Claude 공동 작성자 표기 안 함)
+- 커밋 메시지 형식:
+```
+<type>: <한글 설명>
+
+<본문 (선택)>
+```
+- type: feat, fix, docs, refactor, test, chore 등
+
+### 5. 작업 완료 체크리스트
 - [ ] 터미널 로그 저장했는가?
 - [ ] 서브 CLAUDE.md 업데이트 필요한가?
 - [ ] 세션 히스토리 기록했는가?
+- [ ] Git 커밋 시 한글 메시지 사용했는가?
 
 ---
 
