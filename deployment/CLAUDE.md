@@ -2,22 +2,30 @@
 
 > **상위 문서**: [/CLAUDE.md](../CLAUDE.md) - 프로젝트 전체 규칙, 환경변수, 세션 히스토리/터미널 로그 기록 방법 참조
 
-Docker 컨테이너화 + 모니터링 스택
+Docker 컨테이너화 + 모니터링 스택 (클린 아키텍처 지원)
 
 ## 구조
 
 ```
 deployment/
 ├── docker/
-│   ├── Dockerfile.fastapi
+│   ├── Dockerfile.fastapi  # FastAPI (클린 아키텍처 + Alembic)
 │   ├── Dockerfile.mlflow
-│   ├── Dockerfile.serve     # vLLM
+│   ├── Dockerfile.serve    # vLLM
 │   └── Dockerfile.train
 └── configs/
     ├── prometheus/prometheus.yml
     ├── grafana/dashboards/
     ├── loki/loki-config.yaml
     └── promtail/promtail-config.yaml
+```
+
+## 환경 설정
+
+```bash
+# 환경 파일 복사 및 수정
+cp env.example .env
+# .env 파일에서 필요한 값 수정
 ```
 
 ## 서비스 포트

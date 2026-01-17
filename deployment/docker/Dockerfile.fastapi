@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -9,19 +9,30 @@ RUN apt-get update && apt-get install -y \
 
 # Install Python dependencies
 RUN pip install --no-cache-dir \
-    fastapi==0.104.1 \
-    uvicorn[standard]==0.24.0 \
-    pydantic==2.5.0 \
-    python-multipart==0.0.6 \
-    httpx==0.25.1 \
-    structlog==23.2.0 \
-    prometheus-client==0.19.0
+    fastapi>=0.104.0 \
+    uvicorn[standard]>=0.24.0 \
+    pydantic>=2.5.0 \
+    pydantic-settings>=2.0.0 \
+    python-multipart>=0.0.6 \
+    httpx>=0.25.0 \
+    openai>=1.0.0 \
+    sqlalchemy>=2.0.0 \
+    aiosqlite>=0.19.0 \
+    alembic>=1.13.0 \
+    structlog>=23.2.0 \
+    prometheus-client>=0.19.0 \
+    python-dotenv>=1.0.0
 
 # Copy application code
 COPY src/serve/ /app/src/serve/
+COPY alembic.ini /app/alembic.ini
 
-# Create logs directory
-RUN mkdir -p /logs
+# Create directories
+RUN mkdir -p /logs /app/data
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV DATABASE_URL=sqlite+aiosqlite:///./data/mlops_chat.db
 
 EXPOSE 8080
 
@@ -29,7 +40,8 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
-CMD ["uvicorn", "src.serve.04_fastapi_server:app", \
-     "--host", "0.0.0.0", \
-     "--port", "8080", \
-     "--log-config", "/app/logging_config.json"]
+# Run migrations and start server
+CMD alembic upgrade head && \
+    uvicorn src.serve.main:app \
+    --host 0.0.0.0 \
+    --port 8080

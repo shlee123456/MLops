@@ -13,6 +13,7 @@ vLLM 기반 고성능 추론 + FastAPI 래퍼 (클린 아키텍처)
 | [schemas/CLAUDE.md](schemas/CLAUDE.md) | Pydantic 스키마 |
 | [cruds/CLAUDE.md](cruds/CLAUDE.md) | CRUD 함수 |
 | [routers/CLAUDE.md](routers/CLAUDE.md) | API 라우터 |
+| [migrations/CLAUDE.md](migrations/CLAUDE.md) | DB 마이그레이션 |
 
 ## 디렉토리 구조
 
@@ -90,6 +91,22 @@ routers/*.py ← dependency.py
 
 ```bash
 pytest tests/serve/ -v
+```
+
+## 마이그레이션 (Alembic)
+
+```bash
+# 현재 상태 확인
+alembic current
+
+# 모델 변경 후 마이그레이션 생성
+alembic revision --autogenerate -m "설명"
+
+# 마이그레이션 적용
+alembic upgrade head
+
+# 롤백
+alembic downgrade -1
 ```
 
 ## 환경 변수

@@ -123,17 +123,28 @@ services:
       dockerfile: deployment/docker/Dockerfile.fastapi
     container_name: mlops-fastapi
     environment:
-      VLLM_ENDPOINT: http://vllm-server:8000
-      LOG_LEVEL: INFO
+      VLLM_BASE_URL: http://vllm-server:8000/v1
+      FASTAPI_HOST: 0.0.0.0
+      FASTAPI_PORT: 8080
+      DATABASE_URL: sqlite+aiosqlite:///./data/mlops_chat.db
+      DEBUG: "false"
+      ENABLE_AUTH: "false"
+      CORS_ORIGINS: "*"
     volumes:
       - ./src:/app/src
       - ./logs/fastapi:/logs
+      - fastapi_data:/app/data
     ports:
       - "8080:8080"
     networks:
       - mlops-network
     depends_on:
       - vllm-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     logging:
       driver: "json-file"
       options:
@@ -264,3 +275,4 @@ volumes:
   loki_data:
   prometheus_data:
   grafana_data:
+  fastapi_data:
