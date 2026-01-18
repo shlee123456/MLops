@@ -18,7 +18,7 @@ from src.serve.routers.dependency import close_llm_client
 
 # structlog 기반 로깅 설정
 # 프로덕션에서는 json_format=True, 개발에서는 False
-setup_logging(json_format=not settings.debug)
+setup_logging(log_dir=settings.log_dir, json_format=not settings.debug)
 logger = get_logger(__name__)
 
 

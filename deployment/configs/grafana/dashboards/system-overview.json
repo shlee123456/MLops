@@ -16,7 +16,7 @@
   "panels": [
     {
       "id": 100,
-      "title": "\ud83d\ude80 Services Status",
+      "title": "🚀 Services Status",
       "type": "row",
       "gridPos": {
         "h": 1,
@@ -30,6 +30,10 @@
       "id": 101,
       "title": "FastAPI",
       "type": "stat",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
       "gridPos": {
         "h": 4,
         "w": 4,
@@ -86,6 +90,10 @@
       "id": 102,
       "title": "vLLM",
       "type": "stat",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
       "gridPos": {
         "h": 4,
         "w": 4,
@@ -142,6 +150,10 @@
       "id": 103,
       "title": "MLflow",
       "type": "stat",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
       "gridPos": {
         "h": 4,
         "w": 4,
@@ -198,6 +210,10 @@
       "id": 104,
       "title": "Prometheus",
       "type": "stat",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
       "gridPos": {
         "h": 4,
         "w": 4,
@@ -254,6 +270,10 @@
       "id": 105,
       "title": "Loki",
       "type": "stat",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
       "gridPos": {
         "h": 4,
         "w": 4,
@@ -308,8 +328,12 @@
     },
     {
       "id": 106,
-      "title": "Postgres",
+      "title": "Node Exporter",
       "type": "stat",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
       "gridPos": {
         "h": 4,
         "w": 4,
@@ -318,7 +342,7 @@
       },
       "targets": [
         {
-          "expr": "up{job=\"postgres\"}",
+          "expr": "up{job=\"node-exporter\"}",
           "refId": "A"
         }
       ],
@@ -364,7 +388,7 @@
     },
     {
       "id": 1,
-      "title": "\ud83c\udfae GPU Metrics",
+      "title": "🎮 GPU Metrics",
       "type": "row",
       "gridPos": {
         "h": 1,
@@ -384,6 +408,10 @@
       },
       "type": "timeseries",
       "title": "GPU Memory Usage",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
       "targets": [
         {
           "expr": "node_nvidia_gpu_memory_used_bytes / node_nvidia_gpu_memory_total_bytes * 100",
@@ -398,7 +426,8 @@
           "max": 100,
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "noValue": "No GPU"
         }
       }
     },
@@ -412,6 +441,10 @@
       },
       "type": "timeseries",
       "title": "GPU Utilization",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
       "targets": [
         {
           "expr": "node_nvidia_gpu_utilization",
@@ -426,13 +459,14 @@
           "max": 100,
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "noValue": "No GPU"
         }
       }
     },
     {
       "id": 4,
-      "title": "\ud83d\udcbb System Resources",
+      "title": "💻 System Resources",
       "type": "row",
       "gridPos": {
         "h": 1,
@@ -452,6 +486,10 @@
       },
       "type": "timeseries",
       "title": "CPU Usage",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
       "targets": [
         {
           "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
@@ -480,6 +518,10 @@
       },
       "type": "timeseries",
       "title": "Memory Usage",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
       "targets": [
         {
           "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
@@ -500,7 +542,7 @@
     },
     {
       "id": 7,
-      "title": "\ud83d\udc33 Container Metrics",
+      "title": "🐳 Container Metrics",
       "type": "row",
       "gridPos": {
         "h": 1,
@@ -520,6 +562,10 @@
       },
       "type": "timeseries",
       "title": "Container CPU Usage",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
       "targets": [
         {
           "expr": "rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_service!=\"\"}[5m]) * 100",
@@ -547,6 +593,10 @@
       },
       "type": "timeseries",
       "title": "Container Memory Usage",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
       "targets": [
         {
           "expr": "container_memory_usage_bytes{container_label_com_docker_compose_service!=\"\"} / 1024 / 1024",
@@ -566,7 +616,7 @@
     },
     {
       "id": 10,
-      "title": "\ud83d\udd25 Application Metrics",
+      "title": "🔥 Application Metrics",
       "type": "row",
       "gridPos": {
         "h": 1,
@@ -586,6 +636,10 @@
       },
       "type": "timeseries",
       "title": "HTTP Requests Rate (FastAPI)",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
       "targets": [
         {
           "expr": "sum(rate(http_requests_total[1m])) by (status_code)",
@@ -613,6 +667,10 @@
       },
       "type": "timeseries",
       "title": "HTTP Request Duration (FastAPI)",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
       "targets": [
         {
           "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",

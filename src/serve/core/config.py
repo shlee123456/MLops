@@ -48,9 +48,12 @@ class Settings(BaseSettings):
     
     # CORS
     cors_origins: list[str] = ["*"]
-    
+
     # HuggingFace
     huggingface_token: Optional[str] = None
+
+    # 로깅
+    log_dir: str = "./logs/fastapi"  # 로컬: ./logs/fastapi, Docker: /logs
 
 
 @lru_cache

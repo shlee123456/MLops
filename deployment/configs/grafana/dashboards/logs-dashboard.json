@@ -19,6 +19,10 @@
       },
       "type": "logs",
       "title": "All Application Logs",
+      "datasource": {
+        "uid": "loki",
+        "type": "loki"
+      },
       "targets": [
         {
           "expr": "{service=\"mlops\"}",
@@ -41,6 +45,10 @@
       },
       "type": "logs",
       "title": "Training Logs",
+      "datasource": {
+        "uid": "loki",
+        "type": "loki"
+      },
       "targets": [
         {
           "expr": "{job=\"training\"}",
@@ -62,10 +70,14 @@
         "y": 10
       },
       "type": "logs",
-      "title": "Inference Logs",
+      "title": "FastAPI Logs",
+      "datasource": {
+        "uid": "loki",
+        "type": "loki"
+      },
       "targets": [
         {
-          "expr": "{job=\"inference\"}",
+          "expr": "{job=\"fastapi\"}",
           "refId": "A"
         }
       ],
@@ -85,6 +97,10 @@
       },
       "type": "logs",
       "title": "System Logs",
+      "datasource": {
+        "uid": "loki",
+        "type": "loki"
+      },
       "targets": [
         {
           "expr": "{job=\"system\"}",
@@ -107,9 +123,13 @@
       },
       "type": "logs",
       "title": "Error Logs",
+      "datasource": {
+        "uid": "loki",
+        "type": "loki"
+      },
       "targets": [
         {
-          "expr": "{service=\"mlops\", level=\"ERROR\"}",
+          "expr": "{service=\"mlops\"} |= \"error\" or {service=\"mlops\"} |= \"ERROR\"",
           "refId": "A"
         }
       ],
@@ -129,6 +149,10 @@
       },
       "type": "bargauge",
       "title": "Log Level Distribution",
+      "datasource": {
+        "uid": "loki",
+        "type": "loki"
+      },
       "targets": [
         {
           "expr": "sum by (level) (count_over_time({service=\"mlops\"} | json [5m]))",
