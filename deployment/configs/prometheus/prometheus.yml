@@ -24,29 +24,8 @@ scrape_configs:
         labels:
           service: 'prometheus'
 
-  # Node Exporter - 시스템 메트릭
-  - job_name: 'node-exporter'
-    static_configs:
-      - targets: ['node-exporter:9100']
-        labels:
-          service: 'node-exporter'
-    metric_relabel_configs:
-      # GPU metrics
-      - source_labels: [__name__]
-        regex: 'node_nvidia_.*'
-        action: keep
-
-  # cAdvisor - 컨테이너 메트릭
-  - job_name: 'cadvisor'
-    static_configs:
-      - targets: ['cadvisor:8080']
-        labels:
-          service: 'cadvisor'
-    metric_relabel_configs:
-      - source_labels: [container_label_com_docker_compose_service]
-        target_label: service
-      - source_labels: [container_label_com_docker_compose_project]
-        target_label: project
+  # Node/Container metrics are pushed by Alloy via remote_write
+  # (replaces node-exporter and cadvisor scrape configs)
 
   # MLflow Server - 메트릭 미노출 (기본 /metrics 엔드포인트 없음)
   # 필요시 별도 exporter 추가 필요

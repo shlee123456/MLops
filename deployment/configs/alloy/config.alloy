@@ -1,0 +1,199 @@
+// ============================================
+// Grafana Alloy Configuration
+// Replaces: Promtail + Node Exporter + cAdvisor
+// ============================================
+
+// ============================================
+// Logging - Loki destination
+// ============================================
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// ============================================
+// Log Collection - Application Logs
+// ============================================
+
+// Training logs
+loki.source.file "training" {
+  targets = [
+    {__path__ = "/logs/training/*.log", job = "training", service = "mlops", log_type = "training"},
+  ]
+  forward_to = [loki.process.json_logs.receiver]
+}
+
+// Inference logs
+loki.source.file "inference" {
+  targets = [
+    {__path__ = "/logs/inference/*.log", job = "inference", service = "mlops", log_type = "inference"},
+  ]
+  forward_to = [loki.process.json_logs.receiver]
+}
+
+// System logs
+loki.source.file "system" {
+  targets = [
+    {__path__ = "/logs/system/*.log", job = "system", service = "mlops", log_type = "system"},
+  ]
+  forward_to = [loki.process.json_logs.receiver]
+}
+
+// MLflow logs
+loki.source.file "mlflow" {
+  targets = [
+    {__path__ = "/logs/mlflow/*.log", job = "mlflow", service = "mlops", log_type = "mlflow"},
+  ]
+  forward_to = [loki.process.json_logs.receiver]
+}
+
+// vLLM logs
+loki.source.file "vllm" {
+  targets = [
+    {__path__ = "/logs/vllm/*.log", job = "vllm", service = "mlops", log_type = "vllm"},
+  ]
+  forward_to = [loki.process.json_logs.receiver]
+}
+
+// FastAPI logs
+loki.source.file "fastapi" {
+  targets = [
+    {__path__ = "/logs/fastapi/*.log", job = "fastapi", service = "mlops", log_type = "api"},
+  ]
+  forward_to = [loki.process.json_logs.receiver]
+}
+
+// JSON log processing pipeline
+loki.process "json_logs" {
+  stage.json {
+    expressions = {
+      level     = "level",
+      message   = "message",
+      timestamp = "timestamp",
+    }
+  }
+  stage.labels {
+    values = {
+      level = "",
+    }
+  }
+  stage.timestamp {
+    source = "timestamp"
+    format = "RFC3339"
+  }
+  forward_to = [loki.write.default.receiver]
+}
+
+// ============================================
+// Docker Container Logs
+// ============================================
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+  refresh_interval = "5s"
+  filter {
+    name   = "label"
+    values = ["com.docker.compose.project=mlops-project"]
+  }
+}
+
+discovery.relabel "docker_logs" {
+  targets = discovery.docker.containers.targets
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/mlops-(.*)"
+    target_label  = "container"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/mlops-(.*)"
+    target_label  = "service"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "compose_service"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "compose_project"
+  }
+}
+
+loki.source.docker "docker_logs" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.docker_logs.output
+  forward_to = [loki.process.docker_json.receiver]
+}
+
+loki.process "docker_json" {
+  stage.json {
+    expressions = {
+      level     = "level",
+      message   = "message",
+      timestamp = "timestamp",
+    }
+  }
+  stage.labels {
+    values = {
+      level = "",
+    }
+  }
+  forward_to = [loki.write.default.receiver]
+}
+
+// ============================================
+// Metrics - Prometheus remote write
+// ============================================
+prometheus.remote_write "default" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}
+
+// ============================================
+// Node Metrics (replaces node-exporter)
+// ============================================
+prometheus.exporter.unix "node" {
+  procfs_path = "/host/proc"
+  sysfs_path  = "/host/sys"
+  rootfs_path = "/host/root"
+}
+
+prometheus.scrape "node" {
+  targets    = prometheus.exporter.unix.node.targets
+  forward_to = [prometheus.remote_write.default.receiver]
+  job_name   = "node-exporter"
+  scrape_interval = "15s"
+}
+
+// ============================================
+// Container Metrics (replaces cadvisor)
+// ============================================
+discovery.relabel "docker_metrics" {
+  targets = discovery.docker.containers.targets
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/mlops-(.*)"
+    target_label  = "container"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "project"
+  }
+}
+
+prometheus.exporter.cadvisor "containers" {
+  docker_host = "unix:///var/run/docker.sock"
+  storage_duration = "5m"
+}
+
+prometheus.scrape "cadvisor" {
+  targets    = prometheus.exporter.cadvisor.containers.targets
+  forward_to = [prometheus.remote_write.default.receiver]
+  job_name   = "cadvisor"
+  scrape_interval = "15s"
+}

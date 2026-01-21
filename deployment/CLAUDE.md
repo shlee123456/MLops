@@ -17,7 +17,8 @@ deployment/
     ├── prometheus/prometheus.yml
     ├── grafana/dashboards/
     ├── loki/loki-config.yaml
-    └── promtail/promtail-config.yaml
+    ├── alloy/config.alloy       # 통합 에이전트 (logs + metrics)
+    └── promtail/                # (deprecated - alloy로 대체)
 ```
 
 ## 서비스 포트
@@ -30,6 +31,7 @@ deployment/
 | 9090 | Prometheus | - |
 | 3000 | Grafana | admin/admin |
 | 3100 | Loki | - |
+| 12345 | Alloy UI | - |
 | 9000 | MinIO | minio/minio123 |
 | 9001 | MinIO Console | minio/minio123 |
 | 5432 | PostgreSQL | mlflow/mlflow |
@@ -55,9 +57,11 @@ docker-compose down
 ```
 MLflow Stack    : postgres, minio, mlflow-server
 Model Serving   : vllm-server, fastapi-server
-Monitoring      : prometheus, grafana, node-exporter, cadvisor
-Logging         : loki, promtail
+Monitoring      : prometheus, grafana, alloy
+Logging         : loki (alloy가 로그 수집)
 ```
+
+> **Note**: Alloy가 node-exporter, cadvisor, promtail 기능을 통합
 
 ## Grafana 대시보드
 

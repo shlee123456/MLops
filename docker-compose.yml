@@ -185,23 +185,34 @@ services:
       timeout: 5s
       retries: 5
 
-  promtail:
-    image: grafana/promtail:2.9.0
-    container_name: mlops-promtail
-    command: -config.file=/etc/promtail/promtail-config.yaml
+  # ============================================
+  # Monitoring Stack (Prometheus + Grafana + Alloy)
+  # ============================================
+  alloy:
+    image: grafana/alloy:v1.4.2
+    container_name: mlops-alloy
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:12345
     volumes:
-      - ./deployment/configs/promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml
-      - ./logs:/logs
-      - /var/log:/var/log:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./deployment/configs/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ./logs:/logs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+      - alloy_data:/var/lib/alloy/data
+    ports:
+      - "12345:12345"
     networks:
       - mlops-network
     depends_on:
       - loki
+      - prometheus
+    privileged: true
 
-  # ============================================
-  # Monitoring Stack (Prometheus + Grafana)
-  # ============================================
   prometheus:
     image: prom/prometheus:v2.47.0
     container_name: mlops-prometheus
@@ -211,6 +222,7 @@ services:
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
+      - '--web.enable-remote-write-receiver'
     volumes:
       - ./deployment/configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
@@ -223,39 +235,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  node-exporter:
-    image: prom/node-exporter:v1.6.1
-    container_name: mlops-node-exporter
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    ports:
-      - "9100:9100"
-    networks:
-      - mlops-network
-
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.47.0
-    container_name: mlops-cadvisor
-    privileged: true
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
-    ports:
-      - "8081:8080"
-    networks:
-      - mlops-network
-    devices:
-      - /dev/kmsg
 
   grafana:
     image: grafana/grafana:10.1.0
@@ -289,3 +268,4 @@ volumes:
   prometheus_data:
   grafana_data:
   fastapi_data:
+  alloy_data:
