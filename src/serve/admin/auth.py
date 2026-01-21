@@ -3,7 +3,7 @@ Admin Authentication Backend - JWT 기반 인증
 """
 
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Union
 
 from jose import JWTError, jwt
 from sqladmin.authentication import AuthenticationBackend
@@ -45,8 +45,8 @@ class AdminAuthBackend(AuthenticationBackend):
         request.session.clear()
         return True
 
-    async def authenticate(self, request: Request) -> Optional[RedirectResponse]:
+    async def authenticate(self, request: Request) -> RedirectResponse | bool:
         token = request.session.get("token")
         if not token or not verify_token(token):
             return RedirectResponse(request.url_for("admin:login"), status_code=302)
-        return None
+        return True

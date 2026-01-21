@@ -8,7 +8,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
 
 from src.serve.core.config import settings
 from src.serve.admin import create_admin
@@ -72,12 +71,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Session 미들웨어 (SQLAdmin 인증에 필요)
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=settings.jwt_secret_key,
-    session_cookie="admin_session",
-)
+# Session 미들웨어는 SQLAdmin이 자체적으로 추가함 (AuthenticationBackend에서)
 
 # SQLAdmin 마운트
 admin = create_admin(app)

@@ -28,4 +28,6 @@
 - [x] main.py에 admin 마운트
 - [x] env.example 업데이트
 - [x] src/serve/CLAUDE.md 업데이트
-- [ ] 테스트 작성 및 실행
+- [x] 테스트 작성 및 실행 (9개 테스트 통과)
+- [x] 로그인 버그 수정 (authenticate 반환값, 중복 SessionMiddleware)
+- [x] 브라우저 테스트 완료
