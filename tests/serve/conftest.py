@@ -5,22 +5,29 @@ Test Fixtures
 """
 
 import asyncio
+import os
 from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
-from src.serve.main import app
+# 테스트용 DB 파일 경로 (프로젝트 루트 기준)
+TEST_DB_PATH = "/tmp/test_mlops_chat.db"
+TEST_DATABASE_URL = f"sqlite+aiosqlite:///{TEST_DB_PATH}"
+TEST_SYNC_DATABASE_URL = f"sqlite:///{TEST_DB_PATH}"
+
+
+# 환경변수 설정 (테스트 모듈 로드 전에)
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+
+
 from src.serve.database import Base
 from src.serve.routers.dependency import get_db, get_llm_client
 from src.serve.core.llm import LLMClient
-
-
-# 테스트용 인메모리 DB
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 
 @pytest.fixture(scope="session")
@@ -31,13 +38,29 @@ def event_loop():
     loop.close()
 
 
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_database():
+    """테스트 세션 시작 전 테스트 DB 설정"""
+    # 기존 테스트 DB 삭제
+    if os.path.exists(TEST_DB_PATH):
+        os.remove(TEST_DB_PATH)
+
+    # 동기 엔진으로 테이블 생성
+    sync_engine = create_engine(TEST_SYNC_DATABASE_URL, echo=False)
+    Base.metadata.create_all(bind=sync_engine)
+    sync_engine.dispose()
+
+    yield
+
+    # 테스트 후 DB 파일 삭제
+    if os.path.exists(TEST_DB_PATH):
+        os.remove(TEST_DB_PATH)
+
+
 @pytest_asyncio.fixture
 async def test_db() -> AsyncGenerator[AsyncSession, None]:
     """테스트용 DB 세션"""
     engine = create_async_engine(TEST_DATABASE_URL, echo=False)
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
 
     async_session = async_sessionmaker(
         engine, class_=AsyncSession, expire_on_commit=False
@@ -45,9 +68,6 @@ async def test_db() -> AsyncGenerator[AsyncSession, None]:
 
     async with async_session() as session:
         yield session
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
 
     await engine.dispose()
 
@@ -74,6 +94,7 @@ def mock_llm_client() -> MagicMock:
 @pytest_asyncio.fixture
 async def client(test_db: AsyncSession, mock_llm_client: MagicMock) -> AsyncGenerator[AsyncClient, None]:
     """테스트용 HTTP 클라이언트"""
+    from src.serve.main import app
 
     async def override_get_db():
         yield test_db

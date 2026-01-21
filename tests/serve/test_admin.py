@@ -137,3 +137,140 @@ async def test_admin_logout(client: AsyncClient):
     # 로그아웃
     response = await client.get("/admin/logout", follow_redirects=False)
     assert response.status_code in [302, 303]
+
+
+# ============================================================
+# 커스텀 검색 테스트 (search_query)
+# ============================================================
+
+@pytest.mark.asyncio
+async def test_conversation_search_by_id(client: AsyncClient):
+    """대화 ID로 검색 테스트"""
+    # 로그인
+    login_page = await client.get("/admin/login")
+    csrf_token = extract_csrf_token(login_page.text)
+    data = {"username": "admin", "password": "changeme"}
+    if csrf_token:
+        data["csrf_token"] = csrf_token
+    await client.post("/admin/login", data=data, follow_redirects=True)
+
+    # 검색 쿼리 파라미터로 ID 검색
+    response = await client.get("/admin/conversation/list?search=1", follow_redirects=True)
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_conversation_search_by_title(client: AsyncClient):
+    """대화 제목으로 검색 테스트"""
+    # 로그인
+    login_page = await client.get("/admin/login")
+    csrf_token = extract_csrf_token(login_page.text)
+    data = {"username": "admin", "password": "changeme"}
+    if csrf_token:
+        data["csrf_token"] = csrf_token
+    await client.post("/admin/login", data=data, follow_redirects=True)
+
+    # 제목 검색
+    response = await client.get("/admin/conversation/list?search=test", follow_redirects=True)
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_message_search_by_conversation_id(client: AsyncClient):
+    """메시지 conversation_id로 검색 테스트"""
+    # 로그인
+    login_page = await client.get("/admin/login")
+    csrf_token = extract_csrf_token(login_page.text)
+    data = {"username": "admin", "password": "changeme"}
+    if csrf_token:
+        data["csrf_token"] = csrf_token
+    await client.post("/admin/login", data=data, follow_redirects=True)
+
+    # conversation_id로 검색
+    response = await client.get("/admin/chat-message/list?search=1", follow_redirects=True)
+    assert response.status_code == 200
+
+
+# ============================================================
+# BaseView 테스트 (커스텀 대시보드)
+# ============================================================
+
+@pytest.mark.asyncio
+async def test_system_status_view(client: AsyncClient):
+    """시스템 상태 대시보드 테스트"""
+    # 로그인
+    login_page = await client.get("/admin/login")
+    csrf_token = extract_csrf_token(login_page.text)
+    data = {"username": "admin", "password": "changeme"}
+    if csrf_token:
+        data["csrf_token"] = csrf_token
+    await client.post("/admin/login", data=data, follow_redirects=True)
+
+    # 시스템 상태 페이지 접근
+    response = await client.get("/admin/system-status", follow_redirects=True)
+    assert response.status_code == 200
+    # 메모리 정보가 포함되어 있는지 확인
+    assert "메모리" in response.text or "memory" in response.text.lower()
+
+
+@pytest.mark.asyncio
+async def test_message_statistics_view_get(client: AsyncClient):
+    """메시지 통계 대시보드 GET 테스트"""
+    # 로그인
+    login_page = await client.get("/admin/login")
+    csrf_token = extract_csrf_token(login_page.text)
+    data = {"username": "admin", "password": "changeme"}
+    if csrf_token:
+        data["csrf_token"] = csrf_token
+    await client.post("/admin/login", data=data, follow_redirects=True)
+
+    # 메시지 통계 페이지 접근
+    response = await client.get("/admin/message-statistics", follow_redirects=True)
+    assert response.status_code == 200
+    # 통계 정보 키워드 확인
+    assert "통계" in response.text or "메시지" in response.text
+
+
+@pytest.mark.asyncio
+async def test_message_statistics_view_post(client: AsyncClient):
+    """메시지 통계 대시보드 POST (날짜 필터) 테스트"""
+    # 로그인
+    login_page = await client.get("/admin/login")
+    csrf_token = extract_csrf_token(login_page.text)
+    data = {"username": "admin", "password": "changeme"}
+    if csrf_token:
+        data["csrf_token"] = csrf_token
+    await client.post("/admin/login", data=data, follow_redirects=True)
+
+    # 날짜 필터 POST
+    stats_page = await client.get("/admin/message-statistics", follow_redirects=True)
+    csrf_token = extract_csrf_token(stats_page.text) or ""
+
+    response = await client.post(
+        "/admin/message-statistics",
+        data={
+            "csrf_token": csrf_token,
+            "start_date": "2024-01-01",
+            "end_date": "2024-12-31",
+        },
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_vllm_status_redirect(client: AsyncClient):
+    """vLLM 상태 리다이렉트 테스트"""
+    # 로그인
+    login_page = await client.get("/admin/login")
+    csrf_token = extract_csrf_token(login_page.text)
+    data = {"username": "admin", "password": "changeme"}
+    if csrf_token:
+        data["csrf_token"] = csrf_token
+    await client.post("/admin/login", data=data, follow_redirects=True)
+
+    # vLLM 상태 페이지 접근 (리다이렉트 확인)
+    response = await client.get("/admin/vllm-status", follow_redirects=False)
+    assert response.status_code == 302
+    # 리다이렉트 URL이 /metrics를 포함하는지 확인
+    assert "/metrics" in response.headers.get("location", "")
