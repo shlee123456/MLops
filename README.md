@@ -99,15 +99,22 @@ cp .env.example .env
 
 | 변수 | 설명 | 기본값 |
 |------|------|--------|
-| `HUGGINGFACE_TOKEN` | Gated 모델 접근 (필수) | - |
-| `MLFLOW_TRACKING_URI` | MLflow 서버 | `./mlruns` |
-| `VLLM_ENDPOINT` | vLLM 서버 | `http://localhost:8000` |
-| `MODEL_PATH` | 모델 경로 | - |
-| `API_KEY` | API 인증 키 | `your-secret-api-key` |
+| `DEBUG` | 디버그 모드 | `false` |
+| `FASTAPI_PORT` | FastAPI 포트 | `8080` |
+| `VLLM_BASE_URL` | vLLM 서버 | `http://localhost:8000/v1` |
+| `DEFAULT_MODEL` | 기본 모델 (미설정 시 vLLM 기본값) | - |
+| `DATABASE_URL` | DB 연결 | `sqlite+aiosqlite:///./mlops_chat.db` |
 | `ENABLE_AUTH` | 인증 활성화 | `false` |
-| `DATABASE_URL` | DB 연결 | `sqlite:///./data/chat.db` |
-| `LOG_DIR` | 로그 디렉토리 | `./logs` |
-| `LOG_LEVEL` | 로그 레벨 | `INFO` |
+| `API_KEY` | API 키 (인증 시) | `your-secret-api-key` |
+| `DEFAULT_TEMPERATURE` | LLM 온도 | `0.7` |
+| `DEFAULT_MAX_TOKENS` | 최대 토큰 | `512` |
+| `LOG_DIR` | 로그 디렉토리 | `./logs/fastapi` |
+| `HUGGINGFACE_TOKEN` | Gated 모델 접근 | - |
+| `MODEL_CACHE_DIR` | 모델 캐시 경로 | `models/downloaded` |
+| `OFFLINE_MODE` | 오프라인 모드 | `false` |
+| `ADMIN_USERNAME` | 관리자 ID | `admin` |
+| `ADMIN_PASSWORD` | 관리자 비밀번호 | `changeme` |
+| `JWT_SECRET_KEY` | JWT 서명 키 | `change-this-...` |
 
 ### 3. GPU 환경 확인
 
@@ -129,25 +136,27 @@ python src/check_gpu.py
 - [x] 기본 LLM 로드 및 추론 테스트
 - [x] Gradio UI 데모
 
-### Phase 2: Fine-tuning 🔄 진행 중
+### Phase 2: Fine-tuning ✅ 완료
 - [x] 학습 데이터 준비 (HuggingFace no_robots: 9,499 examples)
 - [x] 합성 데이터 생성 스크립트 (MLOps/DevOps 특화)
-- [ ] LoRA fine-tuning (준비 완료)
-- [ ] QLoRA fine-tuning (4-bit)
+- [x] LoRA fine-tuning
+- [x] QLoRA fine-tuning (4-bit)
 - [x] MLflow 실험 추적 설정
+- [x] 모델 배포 (HuggingFace Hub)
 
-### Phase 3: 최적화
-- [ ] vLLM 서빙 구축
+### Phase 3: 최적화 🔄 진행 중
+- [x] vLLM 서빙 구축
 - [ ] Prompt Engineering
 - [ ] LangChain 파이프라인
 - [ ] 성능 최적화
 
-### Phase 4: 프로덕션화
+### Phase 4: 프로덕션화 🔄 진행 중
 - [x] FastAPI 백엔드 (클린 아키텍처 적용)
 - [x] SQLAlchemy + Alembic DB 설정
+- [x] SQLAdmin 관리자 인터페이스
 - [ ] 스트리밍 응답
-- [ ] Docker 컨테이너화
-- [ ] 모니터링 (Prometheus + Grafana)
+- [x] Docker 컨테이너화 (스택별 분리)
+- [x] 모니터링 (Prometheus + Grafana + Loki + Alloy)
 - [ ] CI/CD 파이프라인
 
 ## 필수 요구사항
@@ -170,32 +179,38 @@ python src/check_gpu.py
 ## 주요 명령어
 
 ```bash
-# 가상환경 활성화
-source venv/bin/activate
+# pyenv 가상환경 (자동 활성화 - .python-version)
+cd /path/to/mlops-project  # mlops-project 환경 자동 적용
 
-# GPU 확인
+# GPU 및 환경 확인
 python src/check_gpu.py
 
-# 학습 데이터 준비
-python src/data/01_load_dataset.py        # 공개 데이터셋
-python src/data/02_generate_synthetic_data.py  # 합성 데이터
+# 모델 다운로드
+python -m src.utils.download_model meta-llama/Llama-3.1-8B-Instruct
+python -m src.utils.download_model --list  # 다운로드된 모델 목록
 
-# Fine-tuning
+# 학습
 python src/train/01_lora_finetune.py      # LoRA
-
-# FastAPI 서버 실행 (클린 아키텍처)
-python src/serve/main.py
-
-# MLflow UI
+python src/train/02_qlora_finetune.py     # QLoRA
 mlflow ui --port 5000
 
-# DB 마이그레이션 (Alembic)
-cd db
-alembic revision --autogenerate -m "설명"  # 마이그레이션 생성
-alembic upgrade head                        # 최신 버전 적용
+# 서빙
+python src/serve/01_vllm_server.py        # vLLM :8000
+python -m src.serve.main                  # FastAPI :8080 (클린 아키텍처)
 
-# Docker (전체 스택)
-docker-compose up -d
+# 테스트
+python -m pytest tests/serve/ -v
+
+# DB 마이그레이션 (Alembic) - 프로젝트 루트에서 실행
+alembic current                           # 현재 상태
+alembic revision --autogenerate -m "설명"  # 마이그레이션 생성
+alembic upgrade head                       # 적용
+
+# Docker (스택별 실행)
+docker compose -f docker/docker-compose.mlflow.yml up -d      # MLflow만
+docker compose -f docker/docker-compose.serving.yml up -d     # Serving만
+docker compose -f docker/docker-compose.monitoring.yml up -d  # Monitoring만
+docker compose -f docker/docker-compose.yml up -d             # 전체 스택
 ```
 
 ## 트러블슈팅
@@ -217,9 +232,10 @@ docker-compose up -d
 
 ## 상세 문서
 
-- [vLLM 서버 가이드](docs/guides/VLLM.md) - vLLM 서빙 상세 가이드
-- [로깅 시스템 가이드](docs/guides/LOGGING.md) - 구조화된 로깅 사용법
+- [vLLM 서버 가이드](docs/references/VLLM.md) - vLLM 서빙 상세 가이드
+- [로깅 시스템 가이드](docs/references/LOGGING.md) - 구조화된 로깅 사용법
 - [클린 아키텍처 리팩토링 계획](docs/plans/clean-architecture-refactoring.md) - 리팩토링 로드맵
+- [Docker 구조 재편 계획](docs/plans/docker-compose-restructure.md) - Docker Compose 분리
 - [배포 가이드](deployment/CLAUDE.md) - Docker Compose 배포
 
 ## 참고 자료

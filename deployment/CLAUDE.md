@@ -40,7 +40,7 @@ docker/
 
 | 포트 | 서비스 | 계정 |
 |------|--------|------|
-| 5000 | MLflow UI | - |
+| 5050 | MLflow UI | - |
 | 8000 | vLLM (OpenAI API) | - |
 | 8080 | FastAPI | - |
 | 9090 | Prometheus | - |
