@@ -1,0 +1,124 @@
+{
+  "project": "MLOps Chatbot",
+  "branchName": "ralph/grafana-drilldown",
+  "description": "Grafana 대시보드 드릴다운 구현 - 인터랙티브 모니터링 워크플로우",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "logs-dashboard에 컨텍스트 변수 추가",
+      "description": "As a 엔지니어, I want 로그 대시보드가 드릴다운으로 전달된 필터를 자동 적용하도록 so that 관련 로그만 즉시 확인할 수 있다.",
+      "acceptanceCriteria": [
+        "logs-dashboard.json에 templating.list 섹션 추가",
+        "$endpoint 변수 추가 (type: textbox, label: Endpoint)",
+        "$model 변수 추가 (type: textbox, label: Model)",
+        "$status_code 변수 추가 (type: custom, query: 200,400,401,403,404,500,502,503)",
+        "Loki 쿼리를 {job=\"fastapi\"} | json | endpoint=~\"${endpoint:-.+}\" | model=~\"${model:-.+}\" 형식으로 수정",
+        "변수가 비어있을 때 필터 미적용 (조건부 정규식 사용)",
+        "JSON 파일 유효성 검증 (jq . 명령으로 파싱 확인)"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "다른 대시보드가 이 변수를 사용하므로 먼저 구현"
+    },
+    {
+      "id": "US-002",
+      "title": "inference-detail.json 상세 대시보드 생성",
+      "description": "As a 엔지니어, I want 특정 엔드포인트의 성능을 심층 분석하는 대시보드 so that 병목을 정확히 파악할 수 있다.",
+      "acceptanceCriteria": [
+        "deployment/monitoring/configs/grafana/dashboards/inference-detail.json 파일 생성",
+        "uid: inference-detail, title: Inference Detail 설정",
+        "$endpoint 변수 정의 (query: label_values(http_requests_total, endpoint))",
+        "$model 변수 정의 (query: label_values(llm_requests_total, model))",
+        "패널 7-10개 추가: 시간대별 요청 수, p50/p95/p99 레이턴시, 에러율 시계열, 모델별 성능 비교",
+        "모든 Prometheus 쿼리에 endpoint=\"$endpoint\" 필터 적용",
+        "최근 에러 로그 패널 추가 (Loki datasource, {job=\"fastapi\"} | json | endpoint=\"$endpoint\" | level=\"error\")",
+        "로그 패널에 logs-dashboard로 드릴다운 링크 추가",
+        "JSON 파일 유효성 검증"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "training-detail.json 상세 대시보드 생성",
+      "description": "As a ML 엔지니어, I want 특정 학습 실험의 메트릭을 상세히 분석하는 대시보드 so that 하이퍼파라미터 튜닝 결과를 평가할 수 있다.",
+      "acceptanceCriteria": [
+        "deployment/monitoring/configs/grafana/dashboards/training-detail.json 파일 생성",
+        "uid: training-detail, title: Training Detail 설정",
+        "$experiment_id 변수 정의 (type: textbox)",
+        "$run_id 변수 정의 (type: textbox)",
+        "패널 5-7개 추가: Loss curve, Learning rate, GPU 사용률, 메모리 사용량",
+        "모든 쿼리에 run_id=\"$run_id\" 필터 적용",
+        "하이퍼파라미터 정보 표시 (table 패널)",
+        "JSON 파일 유효성 검증"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "MLflow 메트릭 수집 여부 확인 필요"
+    },
+    {
+      "id": "US-004",
+      "title": "inference-metrics 대시보드에 드릴다운 링크 추가",
+      "description": "As a 엔지니어, I want inference-metrics.json의 각 패널에서 상세 대시보드로 이동할 수 있도록 so that 성능 이슈를 빠르게 분석할 수 있다.",
+      "acceptanceCriteria": [
+        "HTTP Request Latency 패널(id:2)에 fieldConfig.defaults.links 추가",
+        "링크 1: title=\"엔드포인트 상세 보기\", url=\"/d/inference-detail?var-endpoint=${__field.labels.endpoint}&from=${__from}&to=${__to}\"",
+        "링크 2: title=\"관련 로그 보기\", url=\"/d/logs-dashboard?var-endpoint=${__field.labels.endpoint}&from=${__from}&to=${__to}\"",
+        "LLM Request Duration 패널(id:8)에 동일한 링크 패턴 추가 (model 변수 사용)",
+        "LLM Request Rate 패널(id:7)에도 드릴다운 링크 추가",
+        "JSON 파일 유효성 검증"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "US-001, US-002 완료 후 실행"
+    },
+    {
+      "id": "US-005",
+      "title": "system-overview 대시보드에 서비스별 드릴다운 추가",
+      "description": "As a 엔지니어, I want 전체 시스템 개요에서 특정 서비스로 드릴다운하여 so that 문제 서비스를 빠르게 격리할 수 있다.",
+      "acceptanceCriteria": [
+        "system-overview.json 파일에 서비스 관련 패널 식별",
+        "FastAPI 관련 메트릭 패널에 inference-metrics로 드릴다운 링크 추가",
+        "vLLM 관련 메트릭 패널에 inference-detail로 드릴다운 링크 추가",
+        "MLflow 관련 메트릭 패널에 training-metrics로 드릴다운 링크 추가",
+        "모든 링크에 시간 범위 전달 (from=${__from}&to=${__to})",
+        "JSON 파일 유효성 검증"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "training-metrics 대시보드에 실험 드릴다운 추가",
+      "description": "As a ML 엔지니어, I want 학습 개요 대시보드에서 특정 실험으로 드릴다운하여 so that 실험 결과를 상세히 분석할 수 있다.",
+      "acceptanceCriteria": [
+        "training-metrics.json 파일에서 Loss/GPU 관련 패널 식별",
+        "실험별 메트릭 패널에 training-detail로 드릴다운 링크 추가",
+        "링크에 experiment_id, run_id 변수 전달 (${__field.labels.experiment_id})",
+        "패널 제목 또는 description에 \"클릭하여 상세 보기\" 안내 추가",
+        "JSON 파일 유효성 검증"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "US-003 완료 후 실행"
+    },
+    {
+      "id": "US-007",
+      "title": "드릴다운 워크플로우 문서화",
+      "description": "As a 팀원, I want 드릴다운 사용 방법과 문제 해결 시나리오를 문서로 제공받아 so that 효과적으로 모니터링 도구를 활용할 수 있다.",
+      "acceptanceCriteria": [
+        "docs/references/GRAFANA_DRILLDOWN_WORKFLOW.md 파일 생성",
+        "드릴다운 개념 및 시퀀스 다이어그램 포함",
+        "문제 해결 워크플로우 시나리오 4개 작성 완료",
+        "드릴다운 경로 맵 (Mermaid 다이어그램) 포함",
+        "변수 전달 규칙 테이블 작성",
+        "deployment/CLAUDE.md에 GRAFANA_DRILLDOWN_WORKFLOW.md 참조 링크 추가"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "문서 이미 작성 완료"
+    }
+  ]
+}

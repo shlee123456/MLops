@@ -1,0 +1,24 @@
+# Ralph Progress Log
+Started: Sat Jan 25 00:00:00 KST 2026
+---
+
+## Codebase Patterns
+- Grafana 대시보드 JSON에 `uid` 필드를 추가해야 드릴다운 링크에서 `/d/<uid>` 형식으로 참조 가능
+- Loki 쿼리에서 변수 미입력 시 전체 매칭하려면 `${varname:-.+}` 정규식 기본값 사용
+- `type: textbox` 변수는 자유 입력, `type: custom`은 쉼표 구분 query 값에서 선택
+- Training/System 로그는 별도 job 라벨 사용 ({job="training"}, {job="system"}) - endpoint/model 필터 불필요
+- jq . 명령으로 JSON 유효성 검증 가능
+
+---
+
+## 2026-01-25 - US-001
+- logs-dashboard.json에 templating.list 섹션 추가 (endpoint, model, status_code 변수)
+- Loki 쿼리를 JSON 파싱 + 조건부 정규식 필터링으로 수정
+- uid: "logs-dashboard" 추가 (드릴다운 링크 대상)
+- Error Logs 패널을 {job="fastapi"} 기반으로 변경하여 JSON 파싱 가능하도록 수정
+- Files changed: deployment/monitoring/configs/grafana/dashboards/logs-dashboard.json
+- **Learnings for future iterations:**
+  - `${varname:-.+}` 패턴으로 빈 변수일 때 전체 매칭 가능
+  - Training/System 로그는 구조화된 JSON이 아닐 수 있으므로 | json 파이프라인 적용 주의
+  - Log Level Distribution 패널도 필터링 적용 시 일관된 뷰 제공
+---
