@@ -54,8 +54,8 @@
         "JSON 파일 유효성 검증"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "MLflow 메트릭 수집 여부 확인 필요"
+      "passes": true,
+      "notes": "7개 패널 구현: Loss curve(train+eval), Learning rate, GPU 사용률, GPU 메모리, Training step(stat), Epoch(stat), 하이퍼파라미터 테이블(Loki)"
     },
     {
       "id": "US-004",
