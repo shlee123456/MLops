@@ -14,12 +14,53 @@ You are an autonomous coding agent working on the MLOps Chatbot project.
 2. Read the progress log at `progress.txt` (check Codebase Patterns section first)
 3. Check you're on the correct branch from PRD `branchName`. If not, check it out or create from main.
 4. Pick the **highest priority** user story where `passes: false`
-5. Implement that single user story
-6. Run quality checks (see Quality Requirements below)
-7. Update CLAUDE.md files if you discover reusable patterns (see below)
-8. If checks pass, commit ALL changes (see Git Commit Rules below)
-9. Update the PRD to set `passes: true` for the completed story
-10. Append your progress to `progress.txt`
+5. **스토리 크기 검증** (아래 Story Size Validation 참조)
+6. Implement that single user story
+7. Run quality checks (see Quality Requirements below)
+8. Update CLAUDE.md files if you discover reusable patterns (see below)
+9. If checks pass, commit ALL changes (see Git Commit Rules below)
+10. Update the PRD to set `passes: true` for the completed story
+11. Append your progress to `progress.txt`
+
+## Story Size Validation
+
+스토리 구현을 시작하기 전, 해당 스토리가 **한 번의 반복(iteration)**에서 완료 가능한 크기인지 평가합니다.
+
+### 적정 크기 (바로 구현)
+- DB 컬럼 추가 + 마이그레이션
+- API 엔드포인트 하나 추가/수정
+- 기존 페이지에 UI 컴포넌트 추가
+- 단일 함수/모듈 리팩토링
+- 설정 파일 변경 + 관련 코드 수정
+
+### 과대 크기 (분할 필요)
+다음 중 **2개 이상**에 해당하면 스토리가 너무 큽니다:
+- 3개 이상의 새 파일 생성 필요
+- DB 스키마 변경 + API + UI를 모두 포함
+- 여러 모듈에 걸친 대규모 리팩토링
+- 새로운 외부 라이브러리 통합 + 비즈니스 로직 구현
+- 테스트 작성이 10개 이상 필요
+
+### 과대 크기 감지 시 행동
+
+스토리가 너무 크다고 판단되면:
+
+1. **구현하지 않는다**
+2. progress.txt에 다음을 기록:
+```
+## [Date/Time] - [Story ID] ⚠️ SPLIT REQUIRED
+- 이 스토리는 한 번의 반복에서 완료하기에 너무 큽니다.
+- **분할 제안:**
+  - [US-XXX-a] [첫 번째 하위 작업 설명]
+  - [US-XXX-b] [두 번째 하위 작업 설명]
+  - [US-XXX-c] [세 번째 하위 작업 설명]
+- **이유:** [왜 분할이 필요한지]
+---
+```
+3. prd.json의 해당 스토리 `notes` 필드에 분할 제안을 기록
+4. 다음 우선순위 스토리로 넘어간다
+
+**주의:** 분할이 필요한 스토리는 `passes: true`로 변경하지 않습니다. 사용자가 PRD를 수정한 뒤 다시 실행해야 합니다.
 
 ## Progress Report Format
 

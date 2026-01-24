@@ -8,12 +8,53 @@ You are an autonomous coding agent working on a software project.
 2. Read the progress log at `progress.txt` (check Codebase Patterns section first)
 3. Check you're on the correct branch from PRD `branchName`. If not, check it out or create from main.
 4. Pick the **highest priority** user story where `passes: false`
-5. Implement that single user story
-6. Run quality checks (e.g., typecheck, lint, test - use whatever your project requires)
-7. Update AGENTS.md files if you discover reusable patterns (see below)
-8. If checks pass, commit ALL changes with message: `feat: [Story ID] - [Story Title]`
-9. Update the PRD to set `passes: true` for the completed story
-10. Append your progress to `progress.txt`
+5. **Story Size Validation** (see section below)
+6. Implement that single user story
+7. Run quality checks (e.g., typecheck, lint, test - use whatever your project requires)
+8. Update AGENTS.md files if you discover reusable patterns (see below)
+9. If checks pass, commit ALL changes with message: `feat: [Story ID] - [Story Title]`
+10. Update the PRD to set `passes: true` for the completed story
+11. Append your progress to `progress.txt`
+
+## Story Size Validation
+
+Before starting implementation, evaluate whether the story can be completed in **a single iteration**.
+
+### Right Size (proceed with implementation)
+- Add DB column + migration
+- Add/modify a single API endpoint
+- Add a UI component to an existing page
+- Refactor a single function/module
+- Config file change + related code update
+
+### Too Large (split required)
+The story is too large if **2 or more** of the following apply:
+- Requires creating 3+ new files
+- Includes DB schema change + API + UI together
+- Large-scale refactoring across multiple modules
+- New external library integration + business logic implementation
+- Requires writing 10+ tests
+
+### Action When Too Large
+
+If a story is too large:
+
+1. **Do NOT implement it**
+2. Record in progress.txt:
+```
+## [Date/Time] - [Story ID] ⚠️ SPLIT REQUIRED
+- This story is too large to complete in a single iteration.
+- **Split suggestions:**
+  - [US-XXX-a] [First sub-task description]
+  - [US-XXX-b] [Second sub-task description]
+  - [US-XXX-c] [Third sub-task description]
+- **Reason:** [Why split is needed]
+---
+```
+3. Record split suggestions in the story's `notes` field in prd.json
+4. Move on to the next priority story
+
+**Note:** Stories requiring splits are NOT marked as `passes: true`. The user must revise the PRD and re-run.
 
 ## Progress Report Format
 
