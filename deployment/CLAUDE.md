@@ -89,7 +89,11 @@ Monitoring      : loki, prometheus, grafana, alloy
 | `system-overview.json` | CPU, 메모리, 디스크 |
 | `training-metrics.json` | 학습 loss, 진행률 |
 | `inference-metrics.json` | 추론 latency, throughput |
+| `inference-detail.json` | 엔드포인트/모델별 상세 분석 |
+| `training-detail.json` | 실험별 상세 분석 |
 | `logs-dashboard.json` | Loki 로그 뷰어 |
+
+> **드릴다운 워크플로우**: [GRAFANA_DRILLDOWN_WORKFLOW.md](../docs/references/GRAFANA_DRILLDOWN_WORKFLOW.md) 참조
 
 ## GPU 서비스 요구사항
 
