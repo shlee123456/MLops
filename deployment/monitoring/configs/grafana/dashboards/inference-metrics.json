@@ -82,7 +82,19 @@
           "min": 0,
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "links": [
+            {
+              "title": "엔드포인트 상세 보기",
+              "url": "/d/inference-detail?var-endpoint=${__field.labels.endpoint}&from=${__from}&to=${__to}",
+              "targetBlank": false
+            },
+            {
+              "title": "관련 로그 보기",
+              "url": "/d/logs-dashboard?var-endpoint=${__field.labels.endpoint}&from=${__from}&to=${__to}",
+              "targetBlank": false
+            }
+          ]
         }
       }
     },
@@ -260,7 +272,19 @@
           "min": 0,
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "links": [
+            {
+              "title": "모델 상세 보기",
+              "url": "/d/inference-detail?var-model=${__field.labels.model}&from=${__from}&to=${__to}",
+              "targetBlank": false
+            },
+            {
+              "title": "관련 로그 보기",
+              "url": "/d/logs-dashboard?var-model=${__field.labels.model}&from=${__from}&to=${__to}",
+              "targetBlank": false
+            }
+          ]
         }
       }
     },
@@ -289,7 +313,19 @@
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "min": 0
+          "min": 0,
+          "links": [
+            {
+              "title": "모델 상세 보기",
+              "url": "/d/inference-detail?var-model=${__field.labels.model}&from=${__from}&to=${__to}",
+              "targetBlank": false
+            },
+            {
+              "title": "관련 로그 보기",
+              "url": "/d/logs-dashboard?var-model=${__field.labels.model}&from=${__from}&to=${__to}",
+              "targetBlank": false
+            }
+          ]
         }
       }
     },
