@@ -93,3 +93,9 @@ grafana_data/
 
 # Sensitive files
 cookies.txt
+
+# Ralph (자율 에이전트)
+scripts/ralph/progress.txt
+scripts/ralph/prd.json
+scripts/ralph/.last-branch
+scripts/ralph/archive/
