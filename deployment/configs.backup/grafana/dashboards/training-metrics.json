@@ -1,0 +1,101 @@
+{
+  "title": "Training Metrics",
+  "tags": [
+    "mlops",
+    "training"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 16,
+  "version": 0,
+  "refresh": "10s",
+  "panels": [
+    {
+      "id": 1,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "type": "logs",
+      "title": "Training Logs",
+      "targets": [
+        {
+          "expr": "{job=\"training\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "id": 2,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "type": "stat",
+      "title": "Current Training Step",
+      "targets": [
+        {
+          "expr": "{job=\"training\"} | json | line_format \"{{.step}}\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 3,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "type": "stat",
+      "title": "Latest Loss",
+      "targets": [
+        {
+          "expr": "{job=\"training\"} | json | line_format \"{{.loss}}\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 4,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "type": "logs",
+      "title": "Training Errors",
+      "targets": [
+        {
+          "expr": "{job=\"training\", level=\"ERROR\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending"
+      }
+    }
+  ]
+}

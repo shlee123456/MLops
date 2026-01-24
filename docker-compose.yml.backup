@@ -1,0 +1,291 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # MLflow Stack
+  # ============================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: mlops-postgres
+    environment:
+      POSTGRES_USER: mlflow
+      POSTGRES_PASSWORD: mlflow
+      POSTGRES_DB: mlflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - mlops-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mlflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: mlops-minio
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - mlops-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  mlflow-server:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.mlflow
+    container_name: mlops-mlflow
+    environment:
+      MLFLOW_BACKEND_STORE_URI: postgresql://mlflow:mlflow@postgres:5432/mlflow
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: minio
+      AWS_SECRET_ACCESS_KEY: minio123
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://mlflow:mlflow@postgres:5432/mlflow
+      --default-artifact-root s3://mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+    ports:
+      - "5000:5000"
+    networks:
+      - mlops-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - ./logs/mlflow:/logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=mlflow"
+
+  # ============================================
+  # Model Serving Stack
+  # ============================================
+  vllm-server:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.serve
+    container_name: mlops-vllm
+    environment:
+      MODEL_PATH: ${MODEL_PATH:-/models/base/meta-llama/Meta-Llama-3-8B-Instruct}
+      GPU_MEMORY_UTILIZATION: ${GPU_MEMORY_UTILIZATION:-0.9}
+      MAX_MODEL_LEN: ${MAX_MODEL_LEN:-4096}
+    command: >
+      python -m vllm.entrypoints.openai.api_server
+      --model ${MODEL_PATH:-/models/base/meta-llama/Meta-Llama-3-8B-Instruct}
+      --host 0.0.0.0
+      --port 8000
+      --gpu-memory-utilization ${GPU_MEMORY_UTILIZATION:-0.9}
+      --max-model-len ${MAX_MODEL_LEN:-4096}
+    volumes:
+      - ./models:/models
+      - ./logs/vllm:/logs
+    ports:
+      - "8000:8000"
+    networks:
+      - mlops-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s  # 모델 로딩 시간 고려
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=vllm"
+
+  fastapi-server:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.fastapi
+    container_name: mlops-fastapi
+    environment:
+      VLLM_BASE_URL: http://vllm-server:8000/v1
+      FASTAPI_HOST: 0.0.0.0
+      FASTAPI_PORT: 8080
+      DATABASE_URL: sqlite+aiosqlite:///./data/mlops_chat.db
+      DEBUG: "false"
+      ENABLE_AUTH: "false"
+      CORS_ORIGINS: "*"
+    volumes:
+      - ./src:/app/src
+      - ./logs/fastapi:/logs
+      - ./alembic.ini:/app/alembic.ini
+      - fastapi_data:/app/data
+    ports:
+      - "8080:8080"
+    networks:
+      - mlops-network
+    depends_on:
+      vllm-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=fastapi"
+
+  # ============================================
+  # Logging Stack (Loki + Promtail + Grafana)
+  # ============================================
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: mlops-loki
+    command: -config.file=/etc/loki/loki-config.yaml
+    volumes:
+      - ./deployment/configs/loki/loki-config.yaml:/etc/loki/loki-config.yaml
+      - loki_data:/loki
+    ports:
+      - "3100:3100"
+    networks:
+      - mlops-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: mlops-promtail
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    volumes:
+      - ./deployment/configs/promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml
+      - ./logs:/logs
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    networks:
+      - mlops-network
+    depends_on:
+      - loki
+
+  # ============================================
+  # Monitoring Stack (Prometheus + Grafana)
+  # ============================================
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: mlops-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./deployment/configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - mlops-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: mlops-node-exporter
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    ports:
+      - "9100:9100"
+    networks:
+      - mlops-network
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: mlops-cadvisor
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8081:8080"
+    networks:
+      - mlops-network
+    devices:
+      - /dev/kmsg
+
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: mlops-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    volumes:
+      - ./deployment/configs/grafana/provisioning:/etc/grafana/provisioning
+      - ./deployment/configs/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - mlops-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+
+networks:
+  mlops-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:
+  loki_data:
+  prometheus_data:
+  grafana_data:
+  fastapi_data:

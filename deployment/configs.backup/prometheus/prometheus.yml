@@ -1,0 +1,88 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'mlops-cluster'
+    replica: '0'
+
+# Alerting configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Rule files
+rule_files:
+  # - "alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Node Exporter - 시스템 메트릭
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'node-exporter'
+    metric_relabel_configs:
+      # GPU metrics
+      - source_labels: [__name__]
+        regex: 'node_nvidia_.*'
+        action: keep
+
+  # cAdvisor - 컨테이너 메트릭
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: 'cadvisor'
+    metric_relabel_configs:
+      - source_labels: [container_label_com_docker_compose_service]
+        target_label: service
+      - source_labels: [container_label_com_docker_compose_project]
+        target_label: project
+
+  # MLflow Server - 메트릭 미노출 (기본 /metrics 엔드포인트 없음)
+  # 필요시 별도 exporter 추가 필요
+
+  # vLLM Server - 모델 서빙 메트릭
+  - job_name: 'vllm'
+    static_configs:
+      - targets: ['vllm-server:8000']
+        labels:
+          service: 'vllm'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # FastAPI Server - API 메트릭
+  - job_name: 'fastapi'
+    static_configs:
+      - targets: ['fastapi-server:8080']
+        labels:
+          service: 'fastapi'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Loki
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+        labels:
+          service: 'loki'
+
+  # PostgreSQL - 메트릭 미노출 (기본 /metrics 엔드포인트 없음)
+  # 필요시 postgres_exporter 컨테이너 추가 필요
+
+  # MinIO
+  - job_name: 'minio'
+    static_configs:
+      - targets: ['minio:9000']
+        labels:
+          service: 'minio'
+    metrics_path: '/minio/v2/metrics/cluster'
