@@ -1,45 +1,45 @@
 services:
-  vllm-server:
-    build:
-      context: ..
-      dockerfile: deployment/serving/Dockerfile.vllm
-    container_name: mlops-vllm
-    environment:
-      MODEL_PATH: ${MODEL_PATH:-/models/base/meta-llama/Meta-Llama-3-8B-Instruct}
-      GPU_MEMORY_UTILIZATION: ${GPU_MEMORY_UTILIZATION:-0.9}
-      MAX_MODEL_LEN: ${MAX_MODEL_LEN:-4096}
-    command: >
-      python -m vllm.entrypoints.openai.api_server
-      --model ${MODEL_PATH:-/models/base/meta-llama/Meta-Llama-3-8B-Instruct}
-      --host 0.0.0.0
-      --port 8000
-      --gpu-memory-utilization ${GPU_MEMORY_UTILIZATION:-0.9}
-      --max-model-len ${MAX_MODEL_LEN:-4096}
-    volumes:
-      - ../models:/models
-      - ../logs/vllm:/logs
-    ports:
-      - "8000:8000"
-    networks:
-      - mlops-network
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+  # vllm-server:
+  #   build:
+  #     context: ..
+  #     dockerfile: deployment/serving/Dockerfile.vllm
+  #   container_name: mlops-vllm
+  #   environment:
+  #     MODEL_PATH: ${MODEL_PATH:-/models/base/meta-llama/Meta-Llama-3-8B-Instruct}
+  #     GPU_MEMORY_UTILIZATION: ${GPU_MEMORY_UTILIZATION:-0.9}
+  #     MAX_MODEL_LEN: ${MAX_MODEL_LEN:-4096}
+  #   command: >
+  #     python -m vllm.entrypoints.openai.api_server
+  #     --model ${MODEL_PATH:-/models/base/meta-llama/Meta-Llama-3-8B-Instruct}
+  #     --host 0.0.0.0
+  #     --port 8000
+  #     --gpu-memory-utilization ${GPU_MEMORY_UTILIZATION:-0.9}
+  #     --max-model-len ${MAX_MODEL_LEN:-4096}
+  #   volumes:
+  #     - ../models:/models
+  #     - ../logs/vllm:/logs
+  #   ports:
+  #     - "8000:8000"
+  #   networks:
+  #     - mlops-network
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: 1
+  #             capabilities: [gpu]
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 120s
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
 
   fastapi-server:
     build:
@@ -47,13 +47,13 @@ services:
       dockerfile: deployment/serving/Dockerfile.fastapi
     container_name: mlops-fastapi
     environment:
-      VLLM_BASE_URL: http://vllm-server:8000/v1
+      VLLM_BASE_URL: ${VLLM_BASE_URL:-http://localhost:8000/v1}
       FASTAPI_HOST: 0.0.0.0
       FASTAPI_PORT: 8080
       DATABASE_URL: sqlite+aiosqlite:///./data/mlops_chat.db
       DEBUG: "false"
       ENABLE_AUTH: "false"
-      CORS_ORIGINS: "*"
+      CORS_ORIGINS: '["*"]'
     volumes:
       - ../src:/app/src
       - ../logs/fastapi:/logs
@@ -63,9 +63,6 @@ services:
       - "8080:8080"
     networks:
       - mlops-network
-    depends_on:
-      vllm-server:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s

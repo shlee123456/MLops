@@ -69,7 +69,8 @@ LLM Fine-tuning → 프로덕션 배포 MLOps 파이프라인
 | [src/evaluate/CLAUDE.md](src/evaluate/CLAUDE.md) | 모델 평가 |
 | [src/utils/CLAUDE.md](src/utils/CLAUDE.md) | 로깅 유틸리티 |
 | [deployment/CLAUDE.md](deployment/CLAUDE.md) | Docker 배포 |
-| [scripts/ralph/CLAUDE.md](scripts/ralph/CLAUDE.md) | Ralph 자율 에이전트 |
+| [ralph/CLAUDE.md](ralph/CLAUDE.md) | Ralph 범용 에이전트 지침 |
+| [scripts/ralph/CLAUDE.md](scripts/ralph/CLAUDE.md) | Ralph MLOps 프로젝트 특화 지침 |
 
 ## 디렉토리 구조
 
@@ -110,7 +111,16 @@ data/
 results/              # 실험 결과
 mlruns/               # MLflow 실험 저장소
 logs/                 # 구조화된 로그 (JSON)
-scripts/ralph/        # Ralph 자율 에이전트
+ralph/                → ralph/CLAUDE.md (Ralph 도구 소스)
+├── ralph.sh              # 메인 루프 스크립트 (원본)
+├── skills/prd/SKILL.md   # PRD 생성 스킬
+├── skills/ralph/SKILL.md # PRD→JSON 변환 스킬
+└── flowchart/            # 워크플로우 시각화 (React)
+scripts/ralph/        → scripts/ralph/CLAUDE.md (실행 환경)
+├── ralph.sh              # 실행 스크립트 (복사본)
+├── CLAUDE.md             # MLOps 특화 에이전트 지침
+├── prd.json              # 사용자 스토리 (자동 생성)
+└── progress.txt          # 학습 로그 (자동 생성)
 tasks/                # PRD 문서 저장
 ```
 
@@ -180,17 +190,26 @@ docker compose -f docker/docker-compose.monitoring.yml up -d
 
 Ralph는 PRD 기반으로 AI 코딩 도구를 반복 실행하는 자율 에이전트입니다.
 
+### 디렉토리 구조
+| 경로 | 역할 |
+|------|------|
+| `ralph/` | Ralph 도구 소스 (범용 지침, 스킬 정의, 플로우차트) |
+| `scripts/ralph/` | 프로젝트 실행 환경 (MLOps 특화 지침, 런타임 파일) |
+
 ### 핵심 파일
 | 파일 | 설명 |
 |------|------|
+| `ralph/skills/prd/SKILL.md` | PRD 생성 스킬 정의 |
+| `ralph/skills/ralph/SKILL.md` | PRD→JSON 변환 스킬 정의 |
 | `scripts/ralph/ralph.sh` | 메인 실행 스크립트 |
+| `scripts/ralph/CLAUDE.md` | Claude Code 에이전트 지침 (MLOps 특화) |
 | `scripts/ralph/prd.json` | 사용자 스토리 목록 (자동 생성) |
 | `scripts/ralph/progress.txt` | 학습 내용 로그 (append-only) |
 | `tasks/prd-*.md` | PRD 마크다운 문서 |
 
 ### 워크플로우
-1. **PRD 작성**: `prd` 스킬로 `tasks/prd-[기능명].md` 생성
-2. **JSON 변환**: `ralph` 스킬로 `scripts/ralph/prd.json` 생성
+1. **PRD 작성**: `prd` 스킬(`ralph/skills/prd/`)로 `tasks/prd-[기능명].md` 생성
+2. **JSON 변환**: `ralph` 스킬(`ralph/skills/ralph/`)로 `scripts/ralph/prd.json` 생성
 3. **실행**: `./scripts/ralph/ralph.sh --tool claude 10`
 4. **완료**: 모든 스토리가 `passes: true`가 되면 종료
 
