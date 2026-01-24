@@ -10,6 +10,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.serve.core.llm import LLMClient
@@ -263,17 +264,24 @@ async def create_llm_config(
     _: bool = Depends(verify_api_key),
 ):
     """LLM 설정 프리셋 생성"""
-    config = await crud.create_llm_config(
-        db,
-        name=request.name,
-        model_name=request.model_name,
-        system_prompt=request.system_prompt,
-        temperature=request.temperature,
-        max_tokens=request.max_tokens,
-        top_p=request.top_p,
-        is_default=request.is_default,
-    )
-    return config
+    try:
+        config = await crud.create_llm_config(
+            db,
+            name=request.name,
+            model_name=request.model_name,
+            system_prompt=request.system_prompt,
+            temperature=request.temperature,
+            max_tokens=request.max_tokens,
+            top_p=request.top_p,
+            is_default=request.is_default,
+        )
+        return config
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"LLM config with name '{request.name}' already exists",
+        )
 
 
 @router.get(
