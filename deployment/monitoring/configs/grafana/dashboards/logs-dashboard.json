@@ -16,11 +16,11 @@
         "label": "Endpoint",
         "type": "textbox",
         "current": {
-          "text": "",
-          "value": ""
+          "text": ".*",
+          "value": ".*"
         },
         "options": [],
-        "query": "",
+        "query": ".*",
         "hide": 0
       },
       {
@@ -28,11 +28,11 @@
         "label": "Model",
         "type": "textbox",
         "current": {
-          "text": "",
-          "value": ""
+          "text": ".*",
+          "value": ".*"
         },
         "options": [],
-        "query": "",
+        "query": ".*",
         "hide": 0
       },
       {
@@ -40,13 +40,13 @@
         "label": "Status Code",
         "type": "custom",
         "current": {
-          "text": "",
-          "value": ""
+          "text": "All",
+          "value": "$__all"
         },
         "options": [],
         "query": "200,400,401,403,404,500,502,503",
         "includeAll": true,
-        "allValue": "",
+        "allValue": ".*",
         "hide": 0
       }
     ]
@@ -68,7 +68,7 @@
       },
       "targets": [
         {
-          "expr": "{service=\"mlops\"} | json | endpoint=~\"${endpoint:-.+}\" | model=~\"${model:-.+}\" | status_code=~\"${status_code:-.+}\"",
+          "expr": "{service=\"mlops\"} | json | path=~\"$endpoint\" | status_code=~\"$status_code\"",
           "refId": "A"
         }
       ],
@@ -120,7 +120,7 @@
       },
       "targets": [
         {
-          "expr": "{job=\"fastapi\"} | json | endpoint=~\"${endpoint:-.+}\" | model=~\"${model:-.+}\" | status_code=~\"${status_code:-.+}\"",
+          "expr": "{job=\"fastapi\"} | json | path=~\"$endpoint\" | status_code=~\"$status_code\"",
           "refId": "A"
         }
       ],
@@ -165,14 +165,14 @@
         "y": 18
       },
       "type": "logs",
-      "title": "Error Logs",
+      "title": "Error Logs (All Services)",
       "datasource": {
         "uid": "loki",
         "type": "loki"
       },
       "targets": [
         {
-          "expr": "{job=\"fastapi\"} | json | level=\"error\" | endpoint=~\"${endpoint:-.+}\" | model=~\"${model:-.+}\" | status_code=~\"${status_code:-.+}\"",
+          "expr": "{service=\"mlops\", level=\"error\"} | json | path=~\"$endpoint\" | status_code=~\"$status_code\"",
           "refId": "A"
         }
       ],
@@ -198,7 +198,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (level) (count_over_time({job=\"fastapi\"} | json | endpoint=~\"${endpoint:-.+}\" | model=~\"${model:-.+}\" [5m]))",
+          "expr": "sum by (level) (count_over_time({job=\"fastapi\"} | json [5m]))",
           "refId": "A"
         }
       ],

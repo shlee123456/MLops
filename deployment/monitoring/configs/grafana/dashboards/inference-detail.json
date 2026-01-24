@@ -386,7 +386,7 @@
       },
       "targets": [
         {
-          "expr": "{job=\"fastapi\"} | json | endpoint=~\"${endpoint:-.+}\" | level=\"error\"",
+          "expr": "{job=\"fastapi\", level=\"error\"} | json | path=~\"$endpoint\"",
           "refId": "A"
         }
       ],
@@ -402,7 +402,7 @@
           "links": [
             {
               "title": "로그 대시보드에서 상세 보기",
-              "url": "/d/logs-dashboard?var-endpoint=${__data.fields.endpoint}&from=${__from}&to=${__to}",
+              "url": "/d/logs-dashboard?var-endpoint=${__data.fields.path}&from=${__from}&to=${__to}",
               "targetBlank": false
             }
           ]

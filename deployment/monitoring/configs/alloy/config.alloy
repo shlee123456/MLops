@@ -59,7 +59,7 @@ loki.source.file "vllm" {
 // FastAPI logs
 loki.source.file "fastapi" {
   targets = [
-    {__path__ = "/logs/fastapi/*.log", job = "fastapi", service = "mlops", log_type = "api"},
+    {__path__ = "/logs/fastapi/app.log", job = "fastapi", service = "mlops", log_type = "api"},
   ]
   forward_to = [loki.process.json_logs.receiver]
 }
@@ -93,7 +93,7 @@ discovery.docker "containers" {
   refresh_interval = "5s"
   filter {
     name   = "label"
-    values = ["com.docker.compose.project=mlops-project"]
+    values = ["com.docker.compose.project=docker"]
   }
 }
 

@@ -22,8 +22,10 @@
         "label": "Experiment ID",
         "type": "textbox",
         "current": {
-          "value": ""
+          "text": ".*",
+          "value": ".*"
         },
+        "query": ".*",
         "hide": 0
       },
       {
@@ -31,8 +33,10 @@
         "label": "Run ID",
         "type": "textbox",
         "current": {
-          "value": ""
+          "text": ".*",
+          "value": ".*"
         },
+        "query": ".*",
         "hide": 0
       }
     ]
@@ -50,12 +54,12 @@
       },
       "targets": [
         {
-          "expr": "training_loss{run_id=~\"${run_id:-.+}\", experiment_id=~\"${experiment_id:-.+}\"}",
+          "expr": "training_loss{run_id=~\"$run_id\", experiment_id=~\"$experiment_id\"}",
           "legendFormat": "loss ({{run_id}})",
           "refId": "A"
         },
         {
-          "expr": "training_eval_loss{run_id=~\"${run_id:-.+}\", experiment_id=~\"${experiment_id:-.+}\"}",
+          "expr": "training_eval_loss{run_id=~\"$run_id\", experiment_id=~\"$experiment_id\"}",
           "legendFormat": "eval_loss ({{run_id}})",
           "refId": "B"
         }
@@ -95,7 +99,7 @@
       },
       "targets": [
         {
-          "expr": "training_learning_rate{run_id=~\"${run_id:-.+}\", experiment_id=~\"${experiment_id:-.+}\"}",
+          "expr": "training_learning_rate{run_id=~\"$run_id\", experiment_id=~\"$experiment_id\"}",
           "legendFormat": "lr ({{run_id}})",
           "refId": "A"
         }
@@ -135,7 +139,7 @@
       },
       "targets": [
         {
-          "expr": "training_gpu_utilization{run_id=~\"${run_id:-.+}\", experiment_id=~\"${experiment_id:-.+}\"}",
+          "expr": "training_gpu_utilization{run_id=~\"$run_id\", experiment_id=~\"$experiment_id\"}",
           "legendFormat": "GPU {{gpu_id}} 사용률",
           "refId": "A"
         }
@@ -191,12 +195,12 @@
       },
       "targets": [
         {
-          "expr": "training_gpu_memory_used_bytes{run_id=~\"${run_id:-.+}\", experiment_id=~\"${experiment_id:-.+}\"}",
+          "expr": "training_gpu_memory_used_bytes{run_id=~\"$run_id\", experiment_id=~\"$experiment_id\"}",
           "legendFormat": "GPU {{gpu_id}} 사용 메모리",
           "refId": "A"
         },
         {
-          "expr": "training_gpu_memory_total_bytes{run_id=~\"${run_id:-.+}\", experiment_id=~\"${experiment_id:-.+}\"}",
+          "expr": "training_gpu_memory_total_bytes{run_id=~\"$run_id\", experiment_id=~\"$experiment_id\"}",
           "legendFormat": "GPU {{gpu_id}} 전체 메모리",
           "refId": "B"
         }
@@ -235,7 +239,7 @@
       },
       "targets": [
         {
-          "expr": "training_step{run_id=~\"${run_id:-.+}\", experiment_id=~\"${experiment_id:-.+}\"}",
+          "expr": "training_step{run_id=~\"$run_id\", experiment_id=~\"$experiment_id\"}",
           "refId": "A"
         }
       ],
@@ -269,7 +273,7 @@
       },
       "targets": [
         {
-          "expr": "training_epoch{run_id=~\"${run_id:-.+}\", experiment_id=~\"${experiment_id:-.+}\"}",
+          "expr": "training_epoch{run_id=~\"$run_id\", experiment_id=~\"$experiment_id\"}",
           "refId": "A"
         }
       ],
@@ -307,7 +311,7 @@
       },
       "targets": [
         {
-          "expr": "{job=\"training\"} | json | run_id=~\"${run_id:-.+}\" | event=\"hyperparameters\"",
+          "expr": "{job=\"training\"} | json | run_id=~\"$run_id\" | event=\"hyperparameters\"",
           "refId": "A"
         }
       ],
