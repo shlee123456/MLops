@@ -96,9 +96,21 @@ class LLMModelAdmin(ModelView, model=LLMModel):
         LLMModel.api_url: lambda m, a: (m.api_url[:50] + "..." if m.api_url and len(m.api_url) > 50 else m.api_url),
     }
 
-    # api_key 필드는 폼에서 보이지만 목록에서는 숨김 (마스킹)
+    # 필드 가이드 및 기본값 설정
     form_args = {
-        "api_key": {"label": "API Key (저장 시 마스킹 표시)"}
+        "api_key": {
+            "label": "API Key (저장 시 마스킹 표시)"
+        },
+        "api_url": {
+            "label": "API URL",
+            "description": "vLLM OpenAI 호환 엔드포인트 URL",
+            "render_kw": {"placeholder": "http://localhost:8000/v1"}
+        },
+        "max_tokens_limit": {
+            "label": "최대 토큰 수",
+            "description": "이 모델이 생성할 수 있는 최대 토큰 수",
+            "default": 2048
+        }
     }
 
 
