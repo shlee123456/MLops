@@ -51,6 +51,9 @@ class Conversation(Base):
     llm_config_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("llm_configs.id"), nullable=True
     )
+    user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True
+    )
     session_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False
@@ -62,6 +65,9 @@ class Conversation(Base):
     # 관계
     llm_config: Mapped[Optional["LLMConfig"]] = relationship(
         "LLMConfig", back_populates="conversations"
+    )
+    user: Mapped[Optional["User"]] = relationship(
+        "User", back_populates="conversations"
     )
     messages: Mapped[list["ChatMessage"]] = relationship(
         "ChatMessage", back_populates="conversation", cascade="all, delete-orphan"

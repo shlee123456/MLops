@@ -4,12 +4,15 @@ User Model - 사용자 ORM 모델
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import String, DateTime, Boolean, Integer
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.serve.database import Base
+
+if TYPE_CHECKING:
+    from src.serve.models.chat import Conversation
 
 
 class UserRole(str, Enum):
@@ -33,6 +36,11 @@ class User(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    # 관계
+    conversations: Mapped[list["Conversation"]] = relationship(
+        "Conversation", back_populates="user"
     )
 
     def __repr__(self) -> str:
