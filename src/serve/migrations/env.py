@@ -29,7 +29,7 @@ if config.config_file_name is not None:
 
 # 모델 메타데이터 임포트
 from src.serve.database import Base
-from src.serve.models import ChatMessage, Conversation, LLMConfig  # noqa: F401
+from src.serve.models import ChatMessage, Conversation, LLMConfig, User  # noqa: F401
 
 target_metadata = Base.metadata
 
