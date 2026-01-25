@@ -12,6 +12,7 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse
 
 from src.serve.models.chat import LLMConfig, Conversation, ChatMessage
+from src.serve.models.llm import LLMModel
 from src.serve.models.user import User
 from src.serve.database import sync_engine
 from src.serve.core.config import settings
@@ -29,6 +30,23 @@ class UserAdmin(ModelView, model=User):
     column_searchable_list = [User.username]
     column_default_sort = ("created_at", True)
     form_excluded_columns = [User.password_hash]
+
+
+class LLMModelAdmin(ModelView, model=LLMModel):
+    name = "LLM 모델"
+    name_plural = "LLM 모델 목록"
+    icon = "fa-solid fa-cube"
+    column_list = [LLMModel.id, LLMModel.name, LLMModel.api_url, LLMModel.max_tokens_limit, LLMModel.is_active, LLMModel.created_at]
+    column_searchable_list = [LLMModel.name, LLMModel.api_url]
+    column_default_sort = ("created_at", True)
+    column_formatters = {
+        LLMModel.api_url: lambda m, a: (m.api_url[:50] + "..." if m.api_url and len(m.api_url) > 50 else m.api_url),
+    }
+
+    # api_key 필드는 폼에서 보이지만 목록에서는 숨김 (마스킹)
+    form_args = {
+        "api_key": {"label": "API Key (저장 시 마스킹 표시)"}
+    }
 
 
 class LLMConfigAdmin(ModelView, model=LLMConfig):
