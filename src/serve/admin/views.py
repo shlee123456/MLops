@@ -32,12 +32,16 @@ class UserAdmin(ModelView, model=User):
     column_list = [User.id, User.username, User.role, User.is_active, User.created_at, User.updated_at]
     column_searchable_list = [User.username]
     column_default_sort = ("created_at", True)
+
+    # password_hash는 폼에서 제외 (password 필드로 대체)
+    # created_at, updated_at은 자동 생성되므로 제외
     form_excluded_columns = [User.password_hash, User.created_at, User.updated_at]
 
-    # 비밀번호 필드 추가 (가상 필드)
-    form_extra_fields = {
-        "password": PasswordField("비밀번호", validators=[Optional()])
-    }
+    # 폼 필드 순서 명시 (create 시)
+    form_create_rules = ["username", "password", "role", "is_active"]
+
+    # 폼 필드 순서 명시 (edit 시 - password는 선택적)
+    form_edit_rules = ["username", "password", "role", "is_active"]
 
     # Role 필드를 SelectField로 오버라이드
     form_overrides = {
@@ -52,6 +56,16 @@ class UserAdmin(ModelView, model=User):
             "default": UserRole.USER.value
         }
     }
+
+    async def scaffold_form(self, rules=None):
+        """폼 생성 오버라이드 - password 필드 수동 추가"""
+        # 기본 폼 생성
+        form_class = await super().scaffold_form(rules)
+
+        # password 필드 추가 (Optional - edit 시 변경 안 할 수도 있음)
+        form_class.password = PasswordField("비밀번호", validators=[Optional()])
+
+        return form_class
 
     async def insert_model(self, request: Request, data: dict) -> User:
         """Create new user with password"""

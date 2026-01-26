@@ -61,8 +61,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "구현 완료. scaffold_form(rules=None) 오버라이드하여 password 필드 추가. 5개 테스트 모두 통과. form_extra_fields 속성 제거. 브라우저 확인은 US-006에서 수행 예정."
     },
     {
       "id": "US-005",

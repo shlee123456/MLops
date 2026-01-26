@@ -4,8 +4,10 @@ Started: Mon Jan 26 13:38:07 KST 2026
 
 ## Codebase Patterns
 - **SQLAdmin form_extra_fields는 미구현**: SQLAdmin 0.22.0에서 form_extra_fields 속성은 설정할 수 있지만 실제로 처리되지 않음 (sqladmin/models.py의 scaffold_form()과 sqladmin/forms.py의 get_model_form()에 처리 로직 없음)
-- **Password 필드 추가 우회법**: insert_model/update_model에서 request.form()을 직접 읽어 처리 (현재 UserAdmin에서 사용 중)
-- **Form 커스터마이징 대안**: 1) scaffold_form() 오버라이드, 2) form 속성에 WTForms Form 클래스 직접 할당, 3) form_overrides (기존 필드만)
+- **가상 필드 추가 방법 (권장)**: scaffold_form(rules=None) 메서드 오버라이드 → super().scaffold_form(rules) 호출 → form_class에 필드 직접 할당
+- **scaffold_form 시그니처**: `async def scaffold_form(self, rules=None)` - rules 파라미터 필수
+- **Password 필드 추가 패턴**: insert_model/update_model에서 request.form()을 직접 읽어 password_hash로 변환
+- **Form 커스터마이징 대안**: 1) scaffold_form() 오버라이드 (권장), 2) form 속성에 WTForms Form 클래스 직접 할당, 3) form_overrides (기존 필드만)
 
 ---
 
@@ -67,5 +69,28 @@ Started: Mon Jan 26 13:38:07 KST 2026
 - form_columns, form_excluded_columns, form_include_columns는 모두 모델 컬럼 필터링용
 - 가상 필드(virtual field)를 추가하려면 form 객체를 직접 수정해야 함
 - 컬럼 설정으로 해결할 수 없는 문제 - US-004 또는 US-005로 진행 필요
+
+---
+
+## 2026-01-26 13:46:24 - US-004
+- scaffold_form() 오버라이드 방식 구현 완료
+- Files changed: src/serve/admin/views.py
+- **구현 내용:**
+  - `async def scaffold_form(self, rules=None)` 메서드 오버라이드
+  - `super().scaffold_form(rules)` 호출로 기본 폼 생성
+  - `form_class.password = PasswordField("비밀번호", validators=[Optional()])` 추가
+  - form_extra_fields 속성은 삭제 (미구현 기능이므로 제거)
+- **테스트 결과:**
+  - tests/serve/test_user_admin.py - 5개 테스트 모두 통과 ✅
+  - 기존 insert_model/update_model 로직과 정상 연동
+- **주의사항:**
+  - scaffold_form의 rules 파라미터는 필수 (SQLAdmin이 form_create_rules/form_edit_rules를 전달)
+  - 브라우저에서 UI 렌더링 확인 필요 (자동 테스트로는 UI 확인 불가)
+
+**Learnings for future iterations:**
+- scaffold_form() 오버라이드가 SQLAdmin에서 가상 필드 추가하는 표준 방법
+- super().scaffold_form(rules) 호출 후 form_class 속성에 직접 필드 할당
+- form_extra_fields 대신 이 방법 사용하면 SQLAdmin의 모든 기능(validation, CSRF, rules 등)과 정상 연동
+- 테스트 통과는 백엔드 로직만 검증, UI 렌더링은 브라우저 확인 필수
 
 ---
