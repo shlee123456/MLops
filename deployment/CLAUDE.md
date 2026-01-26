@@ -113,12 +113,59 @@ Monitoring      : loki, prometheus, grafana, alloy
 
 ## GPU 서비스 요구사항
 
+### GPU 설정
+
+시스템 GPU 구성:
+- **GPU 0**: RTX 5090 (32GB VRAM) - 프로덕션 서빙 권장
+- **GPU 1**: RTX 5060 Ti (16GB VRAM) - 테스트/개발 권장
+
+### GPU 번호 지정 방법
+
+특정 GPU를 지정하여 vLLM 서버를 실행할 수 있습니다.
+
+**환경변수 설정:**
+
+```bash
+# .env 파일에 추가
+GPU_DEVICE_ID=0  # 0: RTX 5090, 1: RTX 5060 Ti
+```
+
+**사용 예시:**
+
+```bash
+# GPU 0 (RTX 5090) 사용 - 프로덕션
+GPU_DEVICE_ID=0 docker compose -f docker/docker-compose.serving.yml up -d
+
+# GPU 1 (RTX 5060 Ti) 사용 - 테스트
+GPU_DEVICE_ID=1 docker compose -f docker/docker-compose.serving.yml up -d
+
+# 학습과 서빙 분리
+# 터미널 1: GPU 0에서 서빙
+GPU_DEVICE_ID=0 docker compose -f docker/docker-compose.serving.yml up -d
+
+# 터미널 2: GPU 1에서 학습
+CUDA_VISIBLE_DEVICES=1 python src/train/01_lora_finetune.py
+```
+
+**GPU 할당 확인:**
+
+```bash
+# GPU 할당 상태 확인 스크립트
+./scripts/check_gpu_allocation.sh
+
+# 또는 수동 확인
+docker inspect mlops-vllm | jq '.[0].HostConfig.DeviceRequests'
+nvidia-smi
+```
+
+**Docker Compose 설정:**
+
 ```yaml
 deploy:
   resources:
     reservations:
       devices:
         - driver: nvidia
-          count: 1
+          device_ids: ['${GPU_DEVICE_ID:-0}']
           capabilities: [gpu]
 ```
