@@ -1,33 +1,33 @@
 {
   "project": "MLOps Chatbot",
-  "branchName": "feature/admin-ui-improvements",
-  "description": "Admin UI 필드 개선 - User 비밀번호 필드 추가 및 Role/LLM 입력 가이드",
+  "branchName": "fix/admin-password-field",
+  "description": "Admin UI 비밀번호 필드 렌더링 버그 수정 - SQLAdmin form_extra_fields UI 렌더링 문제 해결",
   "userStories": [
     {
       "id": "US-001",
-      "title": "User Admin 비밀번호 필드 추가",
-      "description": "As a 관리자, I want Admin UI에서 User 생성 시 비밀번호를 입력하고 싶다 so that 비밀번호가 자동으로 해싱되어 저장되고 NULL 에러가 발생하지 않는다.",
+      "title": "SQLAdmin form_extra_fields 렌더링 조사",
+      "description": "As a 개발자, I want form_extra_fields가 왜 렌더링되지 않는지 원인을 파악하고 싶다 so that 올바른 해결 방법을 적용할 수 있다.",
       "acceptanceCriteria": [
-        "UserAdmin.form_extra_fields에 password PasswordField 추가",
-        "insert_model에서 비밀번호 해싱 처리 (bcrypt)",
-        "신규 생성 시 비밀번호 없으면 ValueError 발생",
-        "update_model에서 비밀번호 입력 시에만 변경, 비워두면 기존 유지",
-        "tests/serve/test_user_admin.py 테스트 추가 (생성/수정 시나리오)",
+        "SQLAdmin 0.22.0 문서에서 form_extra_fields 사용법 확인",
+        "SQLAdmin GitHub Issues/Discussions에서 유사 사례 검색",
+        "로컬에서 최소 재현 코드 작성하여 테스트",
+        "원인을 progress.txt에 기록 (템플릿 문제 / 설정 문제 / 버그 등)",
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "원인 확인: form_extra_fields는 SQLAdmin 0.22.0에 구현되지 않은 기능. sqladmin/models.py와 sqladmin/forms.py에 처리 로직 없음. Flask-Admin 레거시 속성. 대안: scaffold_form() 오버라이드 또는 form 속성 직접 지정 필요."
     },
     {
       "id": "US-002",
-      "title": "User Admin Role 드롭다운",
-      "description": "As a 관리자, I want User 생성/수정 시 role을 드롭다운에서 선택하고 싶다 so that 오타로 인한 잘못된 role 입력을 방지할 수 있다.",
+      "title": "커스텀 템플릿 방식으로 해결 시도",
+      "description": "As a 개발자, I want SQLAdmin 커스텀 템플릿을 사용하여 password 필드를 명시적으로 렌더링하고 싶다 so that form_extra_fields의 한계를 우회할 수 있다.",
       "acceptanceCriteria": [
-        "UserAdmin.form_overrides에 role을 SelectField로 오버라이드",
-        "선택지: UserRole enum 값 기반 (admin, user, guest)",
-        "기본값: user",
-        "브라우저에서 드롭다운 표시 확인",
+        "src/serve/admin/templates/user_create.html 생성",
+        "Jinja2 템플릿에서 password 필드 명시적으로 추가",
+        "UserAdmin에 create_template = 'user_create.html' 설정",
+        "브라우저에서 Create 페이지 접속 시 password 필드 확인",
+        "브라우저에서 User 생성 시 비밀번호 입력 및 저장 성공 확인",
         "Typecheck passes"
       ],
       "priority": 2,
@@ -36,17 +36,62 @@
     },
     {
       "id": "US-003",
-      "title": "LLM Model Admin 필드 가이드 추가",
-      "description": "As a 관리자, I want LLM Model 생성 시 API URL과 max_tokens_limit에 예시가 표시되면 좋겠다 so that 올바른 형식으로 쉽게 입력할 수 있다.",
+      "title": "form_include_columns 방식으로 해결 시도",
+      "description": "As a 개발자, I want form_excluded_columns 대신 form_include_columns를 사용해보고 싶다 so that 필드 포함 방식으로 명시적으로 제어할 수 있다.",
       "acceptanceCriteria": [
-        "LLMModelAdmin.form_args에 api_url placeholder 추가 (예: http://localhost:8000/v1)",
-        "api_url description 추가: 'vLLM OpenAI 호환 엔드포인트 URL'",
-        "max_tokens_limit 기본값 2048 설정",
-        "max_tokens_limit description 추가: '이 모델이 생성할 수 있는 최대 토큰 수'",
-        "브라우저에서 placeholder 및 description 표시 확인",
+        "form_excluded_columns 제거",
+        "사용 가능한 모든 필드 나열 후 password 포함 여부 확인",
+        "SQLAdmin 내부 코드 분석하여 extra_fields 처리 방식 확인",
+        "브라우저에서 확인",
         "Typecheck passes"
       ],
       "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "scaffold_form 오버라이드 방식",
+      "description": "As a 개발자, I want UserAdmin.scaffold_form()을 직접 오버라이드하고 싶다 so that 폼 생성 로직을 완전히 제어할 수 있다.",
+      "acceptanceCriteria": [
+        "async def scaffold_form(self) 메서드 오버라이드",
+        "기본 폼에 password 필드를 수동으로 추가",
+        "브라우저에서 확인",
+        "tests/serve/test_user_admin.py 모두 통과",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "WTForms 직접 통합 (최후의 수단)",
+      "description": "As a 개발자, I want SQLAdmin의 자동 폼 생성을 우회하고 WTForms를 직접 사용하고 싶다 so that 완전한 제어권을 가질 수 있다.",
+      "acceptanceCriteria": [
+        "UserAdmin에 form 속성 직접 정의 (WTForms Form 클래스)",
+        "username, password, role, is_active 필드 모두 수동 정의",
+        "insert_model, update_model 로직 유지",
+        "브라우저에서 확인",
+        "tests/serve/test_user_admin.py 모두 통과",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "해결 방법 문서화 및 테스트 강화",
+      "description": "As a 개발자, I want 최종 해결 방법을 문서화하고 브라우저 테스트를 추가하고 싶다 so that 향후 유사한 문제를 방지할 수 있다.",
+      "acceptanceCriteria": [
+        "src/serve/admin/CLAUDE.md에 해결 방법 및 주의사항 추가",
+        "progress.txt에 최종 해결 방법 및 학습 내용 기록",
+        "선택사항: Playwright 기반 E2E 테스트 추가 (브라우저 자동화)",
+        "README 또는 문서에 Admin UI 사용법 업데이트",
+        "Typecheck passes"
+      ],
+      "priority": 6,
       "passes": false,
       "notes": ""
     }
