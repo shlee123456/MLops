@@ -46,8 +46,8 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "조사 결과: form_columns/form_excluded_columns는 모델의 실제 컬럼만 제어. password는 모델 컬럼이 아니므로 include/exclude로 제어 불가. 가상 필드 추가를 위해서는 form 객체 직접 수정 필요."
     },
     {
       "id": "US-004",

@@ -52,3 +52,20 @@ Started: Mon Jan 26 13:38:07 KST 2026
 - 근본 해결을 위해서는 form 객체 자체를 수정해야 함 (scaffold_form 오버라이드 또는 form 속성 직접 지정)
 
 ---
+
+## 2026-01-26 13:44:37 - US-003
+- form_include_columns 방식 조사 및 불가 판단
+- Files changed: (없음)
+- **조사 결과:**
+  - `form_columns`, `form_excluded_columns`는 **모델의 실제 컬럼**만 제어
+  - User 모델에는 `password_hash` 컬럼만 존재, `password`는 존재하지 않음
+  - `form_excluded_columns = [User.password_hash]`로 password_hash를 숨길 수는 있지만
+  - **password 필드를 추가할 수는 없음** (존재하지 않는 컬럼이므로)
+- **결론**: form_include_columns/form_excluded_columns은 **기존 컬럼 필터링만 가능**, 새 필드 추가 불가
+
+**Learnings for future iterations:**
+- form_columns, form_excluded_columns, form_include_columns는 모두 모델 컬럼 필터링용
+- 가상 필드(virtual field)를 추가하려면 form 객체를 직접 수정해야 함
+- 컬럼 설정으로 해결할 수 없는 문제 - US-004 또는 US-005로 진행 필요
+
+---
