@@ -27,14 +27,68 @@ admin/
 
 | 클래스 | 모델 | 기능 |
 |--------|------|------|
+| `UserAdmin` | User | 사용자 관리 + 가상 password 필드 |
+| `LLMModelAdmin` | LLMModel | LLM 모델 관리 |
 | `LLMConfigAdmin` | LLMConfig | LLM 설정 관리 |
 | `ConversationAdmin` | Conversation | 대화 관리 + 커스텀 검색 |
 | `ChatMessageAdmin` | ChatMessage | 메시지 조회 (읽기 전용) + 커스텀 검색 |
+| `FewshotMessageAdmin` | FewshotMessage | Few-shot 메시지 관리 |
+
+### 가상 필드 추가 패턴 (Virtual Fields)
+
+**문제**: SQLAdmin 0.22.0에서 `form_extra_fields`는 구현되지 않음
+
+**해결**: `scaffold_form()` 메서드 오버라이드
+
+```python
+from wtforms import PasswordField
+from wtforms.validators import Optional
+
+class UserAdmin(ModelView, model=User):
+    # password_hash는 폼에서 제외
+    form_excluded_columns = [User.password_hash, User.created_at, User.updated_at]
+
+    async def scaffold_form(self, rules=None):
+        """폼 생성 오버라이드 - password 필드 수동 추가"""
+        # 기본 폼 생성
+        form_class = await super().scaffold_form(rules)
+
+        # 가상 필드 추가
+        form_class.password = PasswordField("비밀번호", validators=[Optional()])
+
+        return form_class
+
+    async def insert_model(self, request, data):
+        """Create 시 password 처리"""
+        form_data = await request.form()
+        password = form_data.get("password", "")
+        if not password:
+            raise ValueError("비밀번호는 필수입니다")
+        data["password_hash"] = hash_password(password)
+        data.pop("password", None)
+        return await super().insert_model(request, data)
+
+    async def update_model(self, request, pk, data):
+        """Update 시 password 처리 (선택적)"""
+        form_data = await request.form()
+        password = form_data.get("password", "")
+        if password:
+            data["password_hash"] = hash_password(password)
+        data.pop("password", None)
+        return await super().update_model(request, pk, data)
+```
+
+**주의사항**:
+- `scaffold_form(self, rules=None)` 시그니처 필수 (rules 파라미터)
+- `super().scaffold_form(rules)` 호출 필수 (부모 메서드에 rules 전달)
+- 가상 필드는 `insert_model`/`update_model`에서 실제 모델 필드로 변환 필요
+- `form_extra_fields`는 사용하지 말 것 (미구현 기능)
 
 ### 커스텀 검색 (search_query)
 
 - **ConversationAdmin**: ID 숫자 검색, title/session_id ilike 검색
 - **ChatMessageAdmin**: ID/conversation_id 숫자 검색, content/role ilike 검색
+- **FewshotMessageAdmin**: ID/llm_config_id 숫자 검색, role/content ilike 검색
 
 ### BaseView (커스텀 대시보드)
 
@@ -70,12 +124,22 @@ admin/
 ## 테스트
 
 ```bash
+# Admin 기능 전체
 python -m pytest tests/serve/test_admin.py -v
+
+# User Admin (password 필드 포함)
+python -m pytest tests/serve/test_user_admin.py -v
 ```
 
-### 테스트 항목 (16개)
+### 테스트 항목
 
+**test_admin.py (16개)**:
 - JWT 토큰 생성/검증 (4개)
 - Admin 페이지 접근 (5개)
 - 커스텀 검색 (3개)
 - BaseView 대시보드 (4개)
+
+**test_user_admin.py (5개)**:
+- User 생성 (비밀번호 포함/미포함)
+- User 수정 (비밀번호 변경/유지)
+- Role 드롭다운 선택

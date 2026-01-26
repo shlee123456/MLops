@@ -10,15 +10,123 @@ from sqlalchemy import or_, func, cast, Date
 from sqladmin import ModelView, BaseView, expose
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
+from wtforms import PasswordField, SelectField
+from wtforms.validators import Optional
 
-from src.serve.models.chat import LLMConfig, Conversation, ChatMessage
+from src.serve.models.chat import LLMConfig, Conversation, ChatMessage, FewshotMessage
+from src.serve.models.llm import LLMModel
+from src.serve.models.user import User, UserRole
 from src.serve.database import sync_engine
 from src.serve.core.config import settings
+from src.serve.core.security import hash_password
 
 
 # ============================================================
 # ModelView Classes
 # ============================================================
+
+class UserAdmin(ModelView, model=User):
+    name = "사용자"
+    name_plural = "사용자 목록"
+    icon = "fa-solid fa-users"
+    column_list = [User.id, User.username, User.role, User.is_active, User.created_at, User.updated_at]
+    column_searchable_list = [User.username]
+    column_default_sort = ("created_at", True)
+
+    # password_hash는 폼에서 제외 (password 필드로 대체)
+    # created_at, updated_at은 자동 생성되므로 제외
+    form_excluded_columns = [User.password_hash, User.created_at, User.updated_at]
+
+    # 폼 필드 순서 명시 (create 시)
+    form_create_rules = ["username", "password", "role", "is_active"]
+
+    # 폼 필드 순서 명시 (edit 시 - password는 선택적)
+    form_edit_rules = ["username", "password", "role", "is_active"]
+
+    # Role 필드를 SelectField로 오버라이드
+    form_overrides = {
+        "role": SelectField
+    }
+
+    # Role 선택지 및 기본값 설정
+    form_args = {
+        "role": {
+            "label": "역할",
+            "choices": [(role.value, role.value) for role in UserRole],
+            "default": UserRole.USER.value
+        }
+    }
+
+    async def scaffold_form(self, rules=None):
+        """폼 생성 오버라이드 - password 필드 수동 추가"""
+        # 기본 폼 생성
+        form_class = await super().scaffold_form(rules)
+
+        # password 필드 추가 (Optional - edit 시 변경 안 할 수도 있음)
+        form_class.password = PasswordField("비밀번호", validators=[Optional()])
+
+        return form_class
+
+    async def insert_model(self, request: Request, data: dict) -> User:
+        """Create new user with password"""
+        # Form 데이터 직접 읽기
+        form_data = await request.form()
+        password = form_data.get("password", "")
+
+        if not password:
+            raise ValueError("비밀번호는 필수입니다")
+
+        # password_hash 설정
+        data["password_hash"] = hash_password(password)
+        # password 필드가 data에 있으면 제거
+        data.pop("password", None)
+
+        return await super().insert_model(request, data)
+
+    async def update_model(self, request: Request, pk: str, data: dict) -> User:
+        """Update user, only change password if provided"""
+        # Form 데이터 직접 읽기
+        form_data = await request.form()
+        password = form_data.get("password", "")
+
+        # 비밀번호가 입력된 경우에만 해싱하여 저장
+        if password:
+            data["password_hash"] = hash_password(password)
+
+        # password 필드가 data에 있으면 제거
+        data.pop("password", None)
+
+        return await super().update_model(request, pk, data)
+
+
+class LLMModelAdmin(ModelView, model=LLMModel):
+    name = "LLM 모델"
+    name_plural = "LLM 모델 목록"
+    icon = "fa-solid fa-cube"
+    column_list = [LLMModel.id, LLMModel.name, LLMModel.api_url, LLMModel.max_tokens_limit, LLMModel.is_active, LLMModel.created_at]
+    column_searchable_list = [LLMModel.name, LLMModel.api_url]
+    column_default_sort = ("created_at", True)
+    column_formatters = {
+        LLMModel.api_url: lambda m, a: (m.api_url[:50] + "..." if m.api_url and len(m.api_url) > 50 else m.api_url),
+    }
+
+    # 필드 가이드 및 기본값 설정
+    form_args = {
+        "api_key": {
+            "label": "API Key (저장 시 마스킹 표시)"
+        },
+        "api_url": {
+            "label": "API URL",
+            "description": "vLLM OpenAI 호환 엔드포인트 URL",
+            "render_kw": {"placeholder": "http://localhost:8000/v1"}
+        },
+        "max_tokens_limit": {
+            "label": "최대 토큰 수",
+            "description": "이 모델이 생성할 수 있는 최대 토큰 수",
+            "default": 2048
+        }
+    }
+
 
 class LLMConfigAdmin(ModelView, model=LLMConfig):
     name = "LLM 설정"
@@ -93,6 +201,48 @@ class ChatMessageAdmin(ModelView, model=ChatMessage):
                 id_filter,
                 ChatMessage.content.ilike(f'%{term}%'),
                 ChatMessage.role.ilike(f'%{term}%')
+            )
+        )
+
+
+class FewshotMessageAdmin(ModelView, model=FewshotMessage):
+    name = "Few-shot 메시지"
+    name_plural = "Few-shot 메시지 목록"
+    icon = "fa-solid fa-list-ol"
+    column_list = [
+        FewshotMessage.id,
+        FewshotMessage.llm_config_id,
+        FewshotMessage.role,
+        FewshotMessage.content,
+        FewshotMessage.order,
+        FewshotMessage.created_at
+    ]
+    column_searchable_list = [FewshotMessage.role, FewshotMessage.content]
+    column_default_sort = [("llm_config_id", False), ("order", False)]
+    column_formatters = {
+        FewshotMessage.content: lambda m, a: (m.content[:50] + "..." if m.content and len(m.content) > 50 else m.content),
+    }
+
+    def search_query(self, stmt, term: str):
+        """커스텀 검색 - llm_config_id 숫자 검색 및 텍스트 검색"""
+        if term == "":
+            return stmt
+
+        # ID 숫자 검색 시도
+        try:
+            config_id = int(term)
+            id_filter = or_(
+                FewshotMessage.id == config_id,
+                FewshotMessage.llm_config_id == config_id
+            )
+        except ValueError:
+            id_filter = False
+
+        return stmt.filter(
+            or_(
+                id_filter,
+                FewshotMessage.role.ilike(f'%{term}%'),
+                FewshotMessage.content.ilike(f'%{term}%')
             )
         )
 
@@ -197,13 +347,27 @@ class MessageStatisticsView(BaseView):
                 ChatMessage.tokens_used.isnot(None)
             ).scalar() or 0
 
-            # 역할별 통계
+            # 평균 TTFT 계산 (first_token_at - created_at 밀리초)
+            # SQLite에서 datetime 차이 계산
+            avg_ttft_ms = session.query(
+                func.avg(
+                    (func.julianday(ChatMessage.first_token_at) - func.julianday(ChatMessage.created_at)) * 86400000
+                )
+            ).filter(
+                date_filter,
+                ChatMessage.first_token_at.isnot(None)
+            ).scalar() or 0
+
+            # 역할별 통계 (TTFT 포함)
             role_stats_query = session.query(
                 ChatMessage.role,
                 func.count(ChatMessage.id).label('count'),
                 func.avg(ChatMessage.latency_ms).label('avg_latency'),
                 func.avg(ChatMessage.tokens_used).label('avg_tokens'),
-                func.sum(ChatMessage.tokens_used).label('total_tokens')
+                func.sum(ChatMessage.tokens_used).label('total_tokens'),
+                func.avg(
+                    (func.julianday(ChatMessage.first_token_at) - func.julianday(ChatMessage.created_at)) * 86400000
+                ).label('avg_ttft')
             ).filter(date_filter).group_by(ChatMessage.role).all()
 
             role_stats = [
@@ -213,16 +377,20 @@ class MessageStatisticsView(BaseView):
                     "avg_latency": r.avg_latency,
                     "avg_tokens": r.avg_tokens,
                     "total_tokens": r.total_tokens,
+                    "avg_ttft": r.avg_ttft,
                 }
                 for r in role_stats_query
             ]
 
-            # 일별 통계
+            # 일별 통계 (TTFT 포함)
             daily_stats_query = session.query(
                 cast(ChatMessage.created_at, Date).label('date'),
                 func.count(ChatMessage.id).label('count'),
                 func.avg(ChatMessage.latency_ms).label('avg_latency'),
-                func.avg(ChatMessage.tokens_used).label('avg_tokens')
+                func.avg(ChatMessage.tokens_used).label('avg_tokens'),
+                func.avg(
+                    (func.julianday(ChatMessage.first_token_at) - func.julianday(ChatMessage.created_at)) * 86400000
+                ).label('avg_ttft')
             ).filter(date_filter).group_by(
                 cast(ChatMessage.created_at, Date)
             ).order_by(cast(ChatMessage.created_at, Date).desc()).limit(14).all()
@@ -233,6 +401,7 @@ class MessageStatisticsView(BaseView):
                     "count": d.count,
                     "avg_latency": d.avg_latency,
                     "avg_tokens": d.avg_tokens,
+                    "avg_ttft": d.avg_ttft,
                 }
                 for d in daily_stats_query
             ]
@@ -250,6 +419,7 @@ class MessageStatisticsView(BaseView):
                 "total_conversations": total_conversations,
                 "avg_latency_ms": avg_latency_ms,
                 "avg_tokens": avg_tokens,
+                "avg_ttft_ms": avg_ttft_ms,
                 "role_stats": role_stats,
                 "daily_stats": daily_stats,
                 "csrf_token": csrf_token,

@@ -1,104 +1,161 @@
 # Ralph Progress Log
-Started: Sat Jan 25 00:00:00 KST 2026
+Started: Mon Jan 26 13:38:07 KST 2026
 ---
 
 ## Codebase Patterns
-- Grafana 대시보드 JSON에 `uid` 필드를 추가해야 드릴다운 링크에서 `/d/<uid>` 형식으로 참조 가능
-- Loki 쿼리에서 변수 미입력 시 전체 매칭하려면 `${varname:-.+}` 정규식 기본값 사용
-- `type: textbox` 변수는 자유 입력, `type: custom`은 쉼표 구분 query 값에서 선택
-- Training/System 로그는 별도 job 라벨 사용 ({job="training"}, {job="system"}) - endpoint/model 필터 불필요
-- jq . 명령으로 JSON 유효성 검증 가능
-- `type: query` 변수에 `label_values(metric, label)` 사용하여 동적으로 값 로딩 가능
-- 드릴다운 대상 대시보드의 변수에 `includeAll: true, allValue: ".*"` 설정하면 미선택 시 전체 매칭
-- 에러 로그 패널에서 `fieldConfig.defaults.links`로 다른 대시보드 드릴다운 링크 추가 가능
-- 시계열 패널의 드릴다운 URL에 `${__field.labels.X}`로 라벨 값, `${__from}/${__to}`로 시간 범위 전달
-- Training 메트릭은 Prometheus에 push되는 게이지 메트릭 (training_loss, training_step 등) 사용
-- Loki 이벤트 로그를 table 패널로 표시할 때 `extractFields` + `organize` transformation 활용
-- stat 타입 패널(서비스 상태 UP/DOWN)에도 `fieldConfig.defaults.links`로 드릴다운 가능
-- logs 타입 패널에도 `fieldConfig.defaults.links`로 드릴다운 링크 추가 가능
-- 패널의 `description` 필드로 안내 텍스트 추가 가능 (hover 시 tooltip으로 표시)
+- **SQLAdmin form_extra_fields는 미구현**: SQLAdmin 0.22.0에서 form_extra_fields 속성은 설정할 수 있지만 실제로 처리되지 않음 (sqladmin/models.py의 scaffold_form()과 sqladmin/forms.py의 get_model_form()에 처리 로직 없음)
+- **가상 필드 추가 방법 (권장)**: scaffold_form(rules=None) 메서드 오버라이드 → super().scaffold_form(rules) 호출 → form_class에 필드 직접 할당
+- **scaffold_form 시그니처**: `async def scaffold_form(self, rules=None)` - rules 파라미터 필수
+- **Password 필드 추가 패턴**: insert_model/update_model에서 request.form()을 직접 읽어 password_hash로 변환
+- **Form 커스터마이징 대안**: 1) scaffold_form() 오버라이드 (권장), 2) form 속성에 WTForms Form 클래스 직접 할당, 3) form_overrides (기존 필드만)
 
 ---
 
-## 2026-01-25 - US-001
-- logs-dashboard.json에 templating.list 섹션 추가 (endpoint, model, status_code 변수)
-- Loki 쿼리를 JSON 파싱 + 조건부 정규식 필터링으로 수정
-- uid: "logs-dashboard" 추가 (드릴다운 링크 대상)
-- Error Logs 패널을 {job="fastapi"} 기반으로 변경하여 JSON 파싱 가능하도록 수정
-- Files changed: deployment/monitoring/configs/grafana/dashboards/logs-dashboard.json
-- **Learnings for future iterations:**
-  - `${varname:-.+}` 패턴으로 빈 변수일 때 전체 매칭 가능
-  - Training/System 로그는 구조화된 JSON이 아닐 수 있으므로 | json 파이프라인 적용 주의
-  - Log Level Distribution 패널도 필터링 적용 시 일관된 뷰 제공
+## 2026-01-26 13:41:17 - US-001
+- SQLAdmin form_extra_fields 렌더링 조사 완료
+- Files changed: test_form_extra_fields.py (최소 재현 테스트)
+- **원인 확인:**
+  - SQLAdmin 0.22.0 문서에 form_extra_fields가 명시되어 있지 않음
+  - 소스 코드 분석 결과 (sqladmin/models.py, sqladmin/forms.py) form_extra_fields 처리 로직이 구현되지 않음
+  - Flask-Admin에는 존재하지만 SQLAdmin은 미구현 상태
+- **현재 코드 동작 확인:**
+  - tests/serve/test_user_admin.py - 5개 테스트 모두 통과
+  - UserAdmin.insert_model()과 update_model()에서 request.form()을 직접 읽어 password 처리
+  - 이 방식으로 기능은 정상 작동하지만, 폼 UI에 password 필드가 렌더링되지 않는 문제는 여전히 존재
+- **참고 자료:**
+  - GitHub Discussion #359: PasswordField 렌더링 방법 (form_create_rules/form_edit_rules 활용)
+  - SQLAdmin 공식 문서: form_extra_fields 미언급, form 속성 직접 지정 권장
+  - 소스 코드: https://github.com/aminalaee/sqladmin/blob/main/sqladmin/forms.py
+
+**Learnings for future iterations:**
+- form_extra_fields는 Flask-Admin 레거시 속성으로 SQLAdmin에서는 작동하지 않음
+- SQLAdmin에서 커스텀 필드 추가 시 scaffold_form() 오버라이드 또는 form 속성 직접 할당 필요
+- 테스트가 통과해도 UI 렌더링 문제는 별개 - 브라우저 확인 필수
+- SQLAdmin은 Flask-Admin에서 영감을 받았지만 모든 기능이 구현된 것은 아님
+
 ---
 
-## 2026-01-25 - US-002
-- inference-detail.json 상세 대시보드 생성 (uid: inference-detail)
-- $endpoint 변수 (query: label_values(http_requests_total, endpoint))
-- $model 변수 (query: label_values(llm_requests_total, model))
-- 10개 패널 구현: 시간대별 요청수, p50/p95/p99 레이턴시, 에러율 시계열, 모델별 성능 비교, 성공률(gauge), 평균 레이턴시(stat), 총 요청수(stat), 토큰 생성률(stat), 최근 에러 로그(loki), 상태 코드 분포(piechart)
-- 에러 로그 패널에 logs-dashboard로의 드릴다운 링크 추가
-- 모든 Prometheus 쿼리에 endpoint/model 필터 적용
-- Files changed: deployment/monitoring/configs/grafana/dashboards/inference-detail.json
-- **Learnings for future iterations:**
-  - `type: query` 변수에 `refresh: 2` 설정 시 대시보드 로딩/시간 범위 변경 시 자동 갱신
-  - `allValue: ".*"` 설정으로 All 선택 시 정규식 전체 매칭
-  - 로그 패널의 fieldConfig.defaults.links로 드릴다운 링크 연결 가능
-  - 에러율 시계열은 4xx/5xx를 분리하면 더 정확한 원인 파악 가능
+## 2026-01-26 13:43:20 - US-002
+- 커스텀 템플릿 방식 조사 및 불가 판단
+- Files changed: (없음)
+- **조사 결과:**
+  - SQLAdmin 템플릿은 `create_template` 속성으로 오버라이드 가능
+  - 기본 템플릿 구조: create.html → render_form_fields() 매크로 → form 객체의 필드 자동 렌더링
+  - **문제점**: form_extra_fields가 form 객체에 필드를 추가하지 않음 (US-001에서 확인)
+  - 템플릿에서 수동으로 password 필드를 하드코딩하는 것은 가능하지만:
+    - WTForms 폼 검증과 분리됨
+    - CSRF 토큰, 에러 메시지 처리 등을 수동 구현해야 함
+    - 유지보수가 어렵고 SQLAdmin 업그레이드 시 깨질 가능성 높음
+- **결론**: 커스텀 템플릿 방식은 **비권장** (근본 해결책 아님)
+
+**Learnings for future iterations:**
+- 템플릿 오버라이드는 UI 커스터마이징에는 유용하지만, 폼 필드 추가에는 적합하지 않음
+- render_form_fields() 매크로는 form 객체의 필드만 렌더링하므로 form 객체에 필드가 없으면 소용없음
+- 근본 해결을 위해서는 form 객체 자체를 수정해야 함 (scaffold_form 오버라이드 또는 form 속성 직접 지정)
+
 ---
 
-## 2026-01-25 - US-004
-- inference-metrics.json의 3개 패널에 fieldConfig.defaults.links 드릴다운 링크 추가
-- Panel id:2 (HTTP Request Latency): endpoint 변수로 inference-detail, logs-dashboard 연결
-- Panel id:7 (LLM Request Rate): model 변수로 inference-detail, logs-dashboard 연결
-- Panel id:8 (LLM Request Duration): model 변수로 inference-detail, logs-dashboard 연결
-- 모든 링크에 시간 범위 전달 (from=${__from}&to=${__to})
-- Files changed: deployment/monitoring/configs/grafana/dashboards/inference-metrics.json
-- **Learnings for future iterations:**
-  - `${__field.labels.labelname}` 으로 시계열 데이터의 라벨 값을 드릴다운 URL에 전달 가능
-  - `${__from}`, `${__to}`로 현재 대시보드의 시간 범위를 그대로 전달
-  - `targetBlank: false`로 같은 탭에서 드릴다운 열기 (뒤로가기로 복귀 가능)
-  - 한 패널에 여러 링크를 추가하면 클릭 시 선택 메뉴가 나타남
+## 2026-01-26 13:44:37 - US-003
+- form_include_columns 방식 조사 및 불가 판단
+- Files changed: (없음)
+- **조사 결과:**
+  - `form_columns`, `form_excluded_columns`는 **모델의 실제 컬럼**만 제어
+  - User 모델에는 `password_hash` 컬럼만 존재, `password`는 존재하지 않음
+  - `form_excluded_columns = [User.password_hash]`로 password_hash를 숨길 수는 있지만
+  - **password 필드를 추가할 수는 없음** (존재하지 않는 컬럼이므로)
+- **결론**: form_include_columns/form_excluded_columns은 **기존 컬럼 필터링만 가능**, 새 필드 추가 불가
+
+**Learnings for future iterations:**
+- form_columns, form_excluded_columns, form_include_columns는 모두 모델 컬럼 필터링용
+- 가상 필드(virtual field)를 추가하려면 form 객체를 직접 수정해야 함
+- 컬럼 설정으로 해결할 수 없는 문제 - US-004 또는 US-005로 진행 필요
+
 ---
 
-## 2026-01-25 - US-003
-- training-detail.json 상세 대시보드 생성 (uid: training-detail)
-- $experiment_id 변수 (textbox), $run_id 변수 (textbox) 정의
-- 7개 패널 구현: Loss curve(train+eval), Learning rate schedule, GPU 사용률, GPU 메모리 사용량, Training step(stat), Epoch(stat), 하이퍼파라미터 정보(table/Loki)
-- 모든 Prometheus 쿼리에 run_id, experiment_id 필터 적용 (`${varname:-.+}` 패턴 사용)
-- 하이퍼파라미터 테이블은 Loki에서 `event="hyperparameters"` 로그를 JSON 파싱하여 표시
-- Files changed: deployment/monitoring/configs/grafana/dashboards/training-detail.json
-- **Learnings for future iterations:**
-  - Training 메트릭은 Prometheus push 방식 (training_loss, training_learning_rate 등)으로 가정
-  - textbox 변수는 refresh 설정 불필요 (사용자 직접 입력)
-  - 하이퍼파라미터처럼 구조화된 이벤트 로그는 Loki + JSON 파싱 + table 타입으로 표시 가능
-  - GPU 메모리는 used/total 두 시리즈를 함께 표시하면 비율 직관적 파악 가능
+## 2026-01-26 13:46:24 - US-004
+- scaffold_form() 오버라이드 방식 구현 완료
+- Files changed: src/serve/admin/views.py
+- **구현 내용:**
+  - `async def scaffold_form(self, rules=None)` 메서드 오버라이드
+  - `super().scaffold_form(rules)` 호출로 기본 폼 생성
+  - `form_class.password = PasswordField("비밀번호", validators=[Optional()])` 추가
+  - form_extra_fields 속성은 삭제 (미구현 기능이므로 제거)
+- **테스트 결과:**
+  - tests/serve/test_user_admin.py - 5개 테스트 모두 통과 ✅
+  - 기존 insert_model/update_model 로직과 정상 연동
+- **주의사항:**
+  - scaffold_form의 rules 파라미터는 필수 (SQLAdmin이 form_create_rules/form_edit_rules를 전달)
+  - 브라우저에서 UI 렌더링 확인 필요 (자동 테스트로는 UI 확인 불가)
+
+**Learnings for future iterations:**
+- scaffold_form() 오버라이드가 SQLAdmin에서 가상 필드 추가하는 표준 방법
+- super().scaffold_form(rules) 호출 후 form_class 속성에 직접 필드 할당
+- form_extra_fields 대신 이 방법 사용하면 SQLAdmin의 모든 기능(validation, CSRF, rules 등)과 정상 연동
+- 테스트 통과는 백엔드 로직만 검증, UI 렌더링은 브라우저 확인 필수
+
 ---
 
-## 2026-01-25 - US-005
-- system-overview.json의 서비스 상태 패널 3개(FastAPI, vLLM, MLflow)에 드릴다운 링크 추가
-- Application Metrics 패널 2개(HTTP Requests Rate, HTTP Request Duration)에 inference-metrics 드릴다운 링크 추가
-- training-metrics.json에 uid: "training-metrics" 추가 (드릴다운 링크 대상으로 사용하기 위해)
-- 모든 링크에 시간 범위 전달 (from=${__from}&to=${__to})
-- Files changed: deployment/monitoring/configs/grafana/dashboards/system-overview.json, deployment/monitoring/configs/grafana/dashboards/training-metrics.json
-- **Learnings for future iterations:**
-  - stat 타입 패널(서비스 상태)에도 fieldConfig.defaults.links로 드릴다운 링크 추가 가능
-  - 드릴다운 대상 대시보드에 uid가 반드시 설정되어 있어야 /d/<uid> 형식 링크가 작동함
-  - targetBlank: false로 설정하면 같은 탭에서 이동 (뒤로가기로 복귀 가능)
+## 2026-01-26 13:48:07 - US-005
+- WTForms 직접 통합 방식 건너뛰기 (US-004로 해결 완료)
+- Files changed: (없음)
+- **판단 근거:**
+  - US-004의 scaffold_form() 오버라이드로 이미 문제 해결
+  - form 속성에 WTForms Form 클래스를 직접 할당하는 방식은 더 복잡하고 유지보수 어려움
+  - scaffold_form() 방식이 SQLAdmin 표준 패턴이며 더 깔끔함
+- **결론**: US-005는 불필요 (US-004로 충분)
+
+**Learnings for future iterations:**
+- 여러 해결 방법이 있을 때, 가장 간단하고 표준적인 방법 선택
+- scaffold_form() 오버라이드 > form 속성 직접 할당 > 커스텀 템플릿
+
 ---
 
-## 2026-01-25 - US-006
-- training-metrics.json의 4개 패널 모두에 training-detail 드릴다운 링크 추가
-- Panel id:1 (Training Logs): experiment_id, run_id 변수로 training-detail 연결
-- Panel id:2 (Current Training Step): experiment_id, run_id 변수로 training-detail 연결
-- Panel id:3 (Latest Loss): experiment_id, run_id 변수로 training-detail 연결
-- Panel id:4 (Training Errors): experiment_id, run_id 변수로 training-detail 연결
-- 모든 패널에 description 필드로 "클릭하여 상세 보기" 안내 추가
-- 모든 링크에 시간 범위 전달 (from=${__from}&to=${__to})
-- Files changed: deployment/monitoring/configs/grafana/dashboards/training-metrics.json
-- **Learnings for future iterations:**
-  - logs 타입 패널에도 fieldConfig.defaults.links로 드릴다운 링크 추가 가능
-  - Loki 기반 패널에서 JSON 파싱된 필드를 라벨로 참조할 때 ${__field.labels.X} 사용
-  - description 필드로 패널에 안내 텍스트 추가 가능 (hover 시 표시)
-  - training-metrics → training-detail 경로: experiment_id + run_id 변수 전달
+## 2026-01-26 13:48:07 - US-006
+- 해결 방법 문서화 및 최종 정리
+- Files changed: src/serve/admin/CLAUDE.md, scripts/ralph/progress.txt
+- **문서화 내용:**
+  - src/serve/admin/CLAUDE.md에 "가상 필드 추가 패턴" 섹션 추가
+  - scaffold_form() 오버라이드 예제 코드 포함
+  - 주의사항 및 시그니처 명시
+  - ModelView 목록에 UserAdmin 추가
+  - 테스트 섹션에 test_user_admin.py 추가
+- **최종 해결 방법:**
+  1. `form_extra_fields`는 SQLAdmin 0.22.0에 미구현
+  2. `scaffold_form(rules=None)` 메서드 오버라이드 사용
+  3. `super().scaffold_form(rules)` 호출 후 `form_class.password` 직접 할당
+  4. `insert_model`/`update_model`에서 password → password_hash 변환
+- **브라우저 테스트:**
+  - 자동화 도구 없어 수동 테스트 권장
+  - http://localhost:8080/admin/ 접속하여 User 생성/수정 확인
+  - password 필드가 렌더링되고 정상 동작하는지 확인
+
+**Learnings for future iterations:**
+- 새 기능 추가 시 CLAUDE.md 문서화 필수 (미래 개발자/에이전트를 위해)
+- 패턴과 예제 코드를 함께 제공하면 이해도 향상
+- 주의사항은 실제 겪은 문제 위주로 작성 (rules 파라미터 누락 등)
+- UI 기능은 백엔드 테스트만으로 부족, 브라우저 확인 필요
+
+---
+
+## 2026-01-26 13:49:35 - 🎉 ALL STORIES COMPLETE
+
+**최종 결과:**
+- 6개 스토리 모두 완료 ✅
+- 5개 커밋 생성
+- 테스트: 5/5 통과
+
+**핵심 해결책:**
+- `form_extra_fields`는 SQLAdmin 0.22.0에 미구현 (US-001)
+- `scaffold_form(rules=None)` 오버라이드로 가상 필드 추가 (US-004)
+- `insert_model`/`update_model`에서 password → password_hash 변환
+
+**문서화:**
+- src/serve/admin/CLAUDE.md - 가상 필드 추가 패턴 및 예제 코드
+- scripts/ralph/progress.txt - 전체 조사 과정 및 학습 내용
+- Codebase Patterns 업데이트
+
+**다음 단계:**
+- 브라우저에서 수동 테스트 권장 (http://localhost:8080/admin/)
+- User 생성/수정 시 password 필드 렌더링 확인
+
 ---

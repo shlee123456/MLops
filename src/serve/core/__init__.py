@@ -18,6 +18,7 @@ from src.serve.core.logging import (
     RequestLoggingMiddleware,
     request_id_var,
 )
+from src.serve.core.security import hash_password, verify_password
 
 __all__ = [
     # Config
@@ -34,4 +35,7 @@ __all__ = [
     "get_logger",
     "RequestLoggingMiddleware",
     "request_id_var",
+    # Security
+    "hash_password",
+    "verify_password",
 ]

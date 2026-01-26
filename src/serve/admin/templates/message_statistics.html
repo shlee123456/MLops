@@ -35,7 +35,7 @@
 
                     <!-- Summary Stats -->
                     <div class="row mb-4">
-                        <div class="col-md-3">
+                        <div class="col">
                             <div class="card bg-primary text-white">
                                 <div class="card-body text-center">
                                     <h5 class="card-title">총 메시지</h5>
@@ -43,7 +43,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col">
                             <div class="card bg-success text-white">
                                 <div class="card-body text-center">
                                     <h5 class="card-title">총 대화</h5>
@@ -51,7 +51,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col">
                             <div class="card bg-info text-white">
                                 <div class="card-body text-center">
                                     <h5 class="card-title">평균 응답시간</h5>
@@ -59,7 +59,15 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col">
+                            <div class="card bg-secondary text-white">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">평균 TTFT</h5>
+                                    <h2>{{ "%.0f"|format(avg_ttft_ms) if avg_ttft_ms else 0 }} ms</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
                             <div class="card bg-warning text-dark">
                                 <div class="card-body text-center">
                                     <h5 class="card-title">평균 토큰</h5>
@@ -77,6 +85,7 @@
                                 <th>역할</th>
                                 <th>메시지 수</th>
                                 <th>평균 응답시간 (ms)</th>
+                                <th>평균 TTFT (ms)</th>
                                 <th>평균 토큰 수</th>
                                 <th>총 토큰 수</th>
                             </tr>
@@ -97,12 +106,13 @@
                                 </td>
                                 <td>{{ stat.count }}</td>
                                 <td>{{ "%.0f"|format(stat.avg_latency) if stat.avg_latency else '-' }}</td>
+                                <td>{{ "%.0f"|format(stat.avg_ttft) if stat.avg_ttft else '-' }}</td>
                                 <td>{{ "%.0f"|format(stat.avg_tokens) if stat.avg_tokens else '-' }}</td>
                                 <td>{{ stat.total_tokens if stat.total_tokens else '-' }}</td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="5" class="text-center text-muted">데이터가 없습니다</td>
+                                <td colspan="6" class="text-center text-muted">데이터가 없습니다</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -117,6 +127,7 @@
                                 <th>날짜</th>
                                 <th>메시지 수</th>
                                 <th>평균 응답시간 (ms)</th>
+                                <th>평균 TTFT (ms)</th>
                                 <th>평균 토큰 수</th>
                             </tr>
                         </thead>
@@ -126,6 +137,7 @@
                                 <td>{{ stat.date }}</td>
                                 <td>{{ stat.count }}</td>
                                 <td>{{ "%.0f"|format(stat.avg_latency) if stat.avg_latency else '-' }}</td>
+                                <td>{{ "%.0f"|format(stat.avg_ttft) if stat.avg_ttft else '-' }}</td>
                                 <td>{{ "%.0f"|format(stat.avg_tokens) if stat.avg_tokens else '-' }}</td>
                             </tr>
                             {% endfor %}

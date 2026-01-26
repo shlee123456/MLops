@@ -29,8 +29,9 @@ migrations/
 
 1. `src/serve/models/`에 모델 정의
 2. `src/serve/models/__init__.py`에서 임포트
-3. 마이그레이션 생성: `alembic revision --autogenerate -m "설명"`
-4. 생성된 파일 검토 후 적용: `alembic upgrade head`
+3. **`env.py`에 모델 임포트 추가** (autogenerate가 모델을 인식하기 위해 필수)
+4. 마이그레이션 생성: `alembic revision --autogenerate -m "설명"`
+5. 생성된 파일 검토 후 적용: `alembic upgrade head`
 
 ## 주의사항
 

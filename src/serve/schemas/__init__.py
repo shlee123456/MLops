@@ -21,6 +21,11 @@ from src.serve.schemas.chat import (
     # Health
     HealthResponse,
 )
+from src.serve.schemas.user import (
+    UserCreate,
+    UserUpdate,
+    UserResponse,
+)
 
 __all__ = [
     "MessageCreate",
@@ -33,4 +38,8 @@ __all__ = [
     "LLMConfigCreate",
     "LLMConfigResponse",
     "HealthResponse",
+    # User
+    "UserCreate",
+    "UserUpdate",
+    "UserResponse",
 ]

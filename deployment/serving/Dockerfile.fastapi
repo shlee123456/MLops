@@ -24,7 +24,8 @@ RUN pip install --no-cache-dir \
     python-dotenv>=1.0.0 \
     sqladmin>=0.16.0 \
     python-jose[cryptography]>=3.3.0 \
-    passlib[bcrypt]>=1.7.4 \
+    'bcrypt<4.2.0' \
+    'passlib[bcrypt]>=1.7.4' \
     psutil>=5.9.0 \
     itsdangerous>=2.1.0
 

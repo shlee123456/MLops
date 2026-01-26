@@ -9,9 +9,12 @@ from sqladmin import Admin
 from src.serve.database import sync_engine
 from src.serve.admin.auth import AdminAuthBackend
 from src.serve.admin.views import (
+    UserAdmin,
+    LLMModelAdmin,
     LLMConfigAdmin,
     ConversationAdmin,
     ChatMessageAdmin,
+    FewshotMessageAdmin,
     SystemStatusView,
     MessageStatisticsView,
     VLLMStatusView,
@@ -35,9 +38,12 @@ def create_admin(app) -> Admin:
     )
 
     # ModelView 등록
+    admin.add_view(UserAdmin)
+    admin.add_view(LLMModelAdmin)
     admin.add_view(LLMConfigAdmin)
     admin.add_view(ConversationAdmin)
     admin.add_view(ChatMessageAdmin)
+    admin.add_view(FewshotMessageAdmin)
 
     # BaseView (커스텀 대시보드) 등록
     admin.add_view(SystemStatusView)

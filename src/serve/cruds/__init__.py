@@ -16,6 +16,14 @@ from src.serve.cruds.chat import (
     get_llm_configs,
     get_default_llm_config,
 )
+from src.serve.cruds.user import (
+    create_user,
+    get_user,
+    get_user_by_username,
+    get_users,
+    update_user,
+    delete_user,
+)
 
 __all__ = [
     "create_conversation",
@@ -28,4 +36,11 @@ __all__ = [
     "get_llm_config",
     "get_llm_configs",
     "get_default_llm_config",
+    # User
+    "create_user",
+    "get_user",
+    "get_user_by_username",
+    "get_users",
+    "update_user",
+    "delete_user",
 ]

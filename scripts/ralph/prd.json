@@ -1,124 +1,99 @@
 {
   "project": "MLOps Chatbot",
-  "branchName": "ralph/grafana-drilldown",
-  "description": "Grafana 대시보드 드릴다운 구현 - 인터랙티브 모니터링 워크플로우",
+  "branchName": "fix/admin-password-field",
+  "description": "Admin UI 비밀번호 필드 렌더링 버그 수정 - SQLAdmin form_extra_fields UI 렌더링 문제 해결",
   "userStories": [
     {
       "id": "US-001",
-      "title": "logs-dashboard에 컨텍스트 변수 추가",
-      "description": "As a 엔지니어, I want 로그 대시보드가 드릴다운으로 전달된 필터를 자동 적용하도록 so that 관련 로그만 즉시 확인할 수 있다.",
+      "title": "SQLAdmin form_extra_fields 렌더링 조사",
+      "description": "As a 개발자, I want form_extra_fields가 왜 렌더링되지 않는지 원인을 파악하고 싶다 so that 올바른 해결 방법을 적용할 수 있다.",
       "acceptanceCriteria": [
-        "logs-dashboard.json에 templating.list 섹션 추가",
-        "$endpoint 변수 추가 (type: textbox, label: Endpoint)",
-        "$model 변수 추가 (type: textbox, label: Model)",
-        "$status_code 변수 추가 (type: custom, query: 200,400,401,403,404,500,502,503)",
-        "Loki 쿼리를 {job=\"fastapi\"} | json | endpoint=~\"${endpoint:-.+}\" | model=~\"${model:-.+}\" 형식으로 수정",
-        "변수가 비어있을 때 필터 미적용 (조건부 정규식 사용)",
-        "JSON 파일 유효성 검증 (jq . 명령으로 파싱 확인)"
+        "SQLAdmin 0.22.0 문서에서 form_extra_fields 사용법 확인",
+        "SQLAdmin GitHub Issues/Discussions에서 유사 사례 검색",
+        "로컬에서 최소 재현 코드 작성하여 테스트",
+        "원인을 progress.txt에 기록 (템플릿 문제 / 설정 문제 / 버그 등)",
+        "Typecheck passes"
       ],
       "priority": 1,
       "passes": true,
-      "notes": "다른 대시보드가 이 변수를 사용하므로 먼저 구현"
+      "notes": "원인 확인: form_extra_fields는 SQLAdmin 0.22.0에 구현되지 않은 기능. sqladmin/models.py와 sqladmin/forms.py에 처리 로직 없음. Flask-Admin 레거시 속성. 대안: scaffold_form() 오버라이드 또는 form 속성 직접 지정 필요."
     },
     {
       "id": "US-002",
-      "title": "inference-detail.json 상세 대시보드 생성",
-      "description": "As a 엔지니어, I want 특정 엔드포인트의 성능을 심층 분석하는 대시보드 so that 병목을 정확히 파악할 수 있다.",
+      "title": "커스텀 템플릿 방식으로 해결 시도",
+      "description": "As a 개발자, I want SQLAdmin 커스텀 템플릿을 사용하여 password 필드를 명시적으로 렌더링하고 싶다 so that form_extra_fields의 한계를 우회할 수 있다.",
       "acceptanceCriteria": [
-        "deployment/monitoring/configs/grafana/dashboards/inference-detail.json 파일 생성",
-        "uid: inference-detail, title: Inference Detail 설정",
-        "$endpoint 변수 정의 (query: label_values(http_requests_total, endpoint))",
-        "$model 변수 정의 (query: label_values(llm_requests_total, model))",
-        "패널 7-10개 추가: 시간대별 요청 수, p50/p95/p99 레이턴시, 에러율 시계열, 모델별 성능 비교",
-        "모든 Prometheus 쿼리에 endpoint=\"$endpoint\" 필터 적용",
-        "최근 에러 로그 패널 추가 (Loki datasource, {job=\"fastapi\"} | json | endpoint=\"$endpoint\" | level=\"error\")",
-        "로그 패널에 logs-dashboard로 드릴다운 링크 추가",
-        "JSON 파일 유효성 검증"
+        "src/serve/admin/templates/user_create.html 생성",
+        "Jinja2 템플릿에서 password 필드 명시적으로 추가",
+        "UserAdmin에 create_template = 'user_create.html' 설정",
+        "브라우저에서 Create 페이지 접속 시 password 필드 확인",
+        "브라우저에서 User 생성 시 비밀번호 입력 및 저장 성공 확인",
+        "Typecheck passes"
       ],
       "priority": 2,
       "passes": true,
-      "notes": "10개 패널 구현 완료: 요청수, 레이턴시, 에러율, 모델 비교, 성공률, 평균 레이턴시, 총 요청수, 토큰률, 에러 로그, 상태코드 분포"
+      "notes": "조사 결과: 비권장 방식으로 판단. render_form_fields() 매크로가 form 객체의 필드만 렌더링하므로, 템플릿에 필드를 하드코딩해도 WTForms 검증과 분리되어 유지보수성 낮음. 근본 해결을 위해서는 form 객체 자체 수정 필요."
     },
     {
       "id": "US-003",
-      "title": "training-detail.json 상세 대시보드 생성",
-      "description": "As a ML 엔지니어, I want 특정 학습 실험의 메트릭을 상세히 분석하는 대시보드 so that 하이퍼파라미터 튜닝 결과를 평가할 수 있다.",
+      "title": "form_include_columns 방식으로 해결 시도",
+      "description": "As a 개발자, I want form_excluded_columns 대신 form_include_columns를 사용해보고 싶다 so that 필드 포함 방식으로 명시적으로 제어할 수 있다.",
       "acceptanceCriteria": [
-        "deployment/monitoring/configs/grafana/dashboards/training-detail.json 파일 생성",
-        "uid: training-detail, title: Training Detail 설정",
-        "$experiment_id 변수 정의 (type: textbox)",
-        "$run_id 변수 정의 (type: textbox)",
-        "패널 5-7개 추가: Loss curve, Learning rate, GPU 사용률, 메모리 사용량",
-        "모든 쿼리에 run_id=\"$run_id\" 필터 적용",
-        "하이퍼파라미터 정보 표시 (table 패널)",
-        "JSON 파일 유효성 검증"
+        "form_excluded_columns 제거",
+        "사용 가능한 모든 필드 나열 후 password 포함 여부 확인",
+        "SQLAdmin 내부 코드 분석하여 extra_fields 처리 방식 확인",
+        "브라우저에서 확인",
+        "Typecheck passes"
       ],
       "priority": 3,
       "passes": true,
-      "notes": "7개 패널 구현: Loss curve(train+eval), Learning rate, GPU 사용률, GPU 메모리, Training step(stat), Epoch(stat), 하이퍼파라미터 테이블(Loki)"
+      "notes": "조사 결과: form_columns/form_excluded_columns는 모델의 실제 컬럼만 제어. password는 모델 컬럼이 아니므로 include/exclude로 제어 불가. 가상 필드 추가를 위해서는 form 객체 직접 수정 필요."
     },
     {
       "id": "US-004",
-      "title": "inference-metrics 대시보드에 드릴다운 링크 추가",
-      "description": "As a 엔지니어, I want inference-metrics.json의 각 패널에서 상세 대시보드로 이동할 수 있도록 so that 성능 이슈를 빠르게 분석할 수 있다.",
+      "title": "scaffold_form 오버라이드 방식",
+      "description": "As a 개발자, I want UserAdmin.scaffold_form()을 직접 오버라이드하고 싶다 so that 폼 생성 로직을 완전히 제어할 수 있다.",
       "acceptanceCriteria": [
-        "HTTP Request Latency 패널(id:2)에 fieldConfig.defaults.links 추가",
-        "링크 1: title=\"엔드포인트 상세 보기\", url=\"/d/inference-detail?var-endpoint=${__field.labels.endpoint}&from=${__from}&to=${__to}\"",
-        "링크 2: title=\"관련 로그 보기\", url=\"/d/logs-dashboard?var-endpoint=${__field.labels.endpoint}&from=${__from}&to=${__to}\"",
-        "LLM Request Duration 패널(id:8)에 동일한 링크 패턴 추가 (model 변수 사용)",
-        "LLM Request Rate 패널(id:7)에도 드릴다운 링크 추가",
-        "JSON 파일 유효성 검증"
+        "async def scaffold_form(self) 메서드 오버라이드",
+        "기본 폼에 password 필드를 수동으로 추가",
+        "브라우저에서 확인",
+        "tests/serve/test_user_admin.py 모두 통과",
+        "Typecheck passes"
       ],
       "priority": 4,
       "passes": true,
-      "notes": "3개 패널에 드릴다운 링크 추가: id:2(endpoint→inference-detail/logs), id:7(model→inference-detail/logs), id:8(model→inference-detail/logs)"
+      "notes": "구현 완료. scaffold_form(rules=None) 오버라이드하여 password 필드 추가. 5개 테스트 모두 통과. form_extra_fields 속성 제거. 브라우저 확인은 US-006에서 수행 예정."
     },
     {
       "id": "US-005",
-      "title": "system-overview 대시보드에 서비스별 드릴다운 추가",
-      "description": "As a 엔지니어, I want 전체 시스템 개요에서 특정 서비스로 드릴다운하여 so that 문제 서비스를 빠르게 격리할 수 있다.",
+      "title": "WTForms 직접 통합 (최후의 수단)",
+      "description": "As a 개발자, I want SQLAdmin의 자동 폼 생성을 우회하고 WTForms를 직접 사용하고 싶다 so that 완전한 제어권을 가질 수 있다.",
       "acceptanceCriteria": [
-        "system-overview.json 파일에 서비스 관련 패널 식별",
-        "FastAPI 관련 메트릭 패널에 inference-metrics로 드릴다운 링크 추가",
-        "vLLM 관련 메트릭 패널에 inference-detail로 드릴다운 링크 추가",
-        "MLflow 관련 메트릭 패널에 training-metrics로 드릴다운 링크 추가",
-        "모든 링크에 시간 범위 전달 (from=${__from}&to=${__to})",
-        "JSON 파일 유효성 검증"
+        "UserAdmin에 form 속성 직접 정의 (WTForms Form 클래스)",
+        "username, password, role, is_active 필드 모두 수동 정의",
+        "insert_model, update_model 로직 유지",
+        "브라우저에서 확인",
+        "tests/serve/test_user_admin.py 모두 통과",
+        "Typecheck passes"
       ],
       "priority": 5,
       "passes": true,
-      "notes": "5개 패널에 드릴다운 링크 추가: id:101(FastAPI→inference-metrics), id:102(vLLM→inference-detail), id:103(MLflow→training-metrics), id:11(HTTP Requests Rate→inference-metrics), id:12(HTTP Request Duration→inference-metrics). training-metrics.json에 uid 추가."
+      "notes": "건너뛰기. US-004의 scaffold_form() 오버라이드로 이미 해결 완료. form 속성 직접 할당은 더 복잡하고 유지보수 어려움. scaffold_form() 방식이 SQLAdmin 표준 패턴."
     },
     {
       "id": "US-006",
-      "title": "training-metrics 대시보드에 실험 드릴다운 추가",
-      "description": "As a ML 엔지니어, I want 학습 개요 대시보드에서 특정 실험으로 드릴다운하여 so that 실험 결과를 상세히 분석할 수 있다.",
+      "title": "해결 방법 문서화 및 테스트 강화",
+      "description": "As a 개발자, I want 최종 해결 방법을 문서화하고 브라우저 테스트를 추가하고 싶다 so that 향후 유사한 문제를 방지할 수 있다.",
       "acceptanceCriteria": [
-        "training-metrics.json 파일에서 Loss/GPU 관련 패널 식별",
-        "실험별 메트릭 패널에 training-detail로 드릴다운 링크 추가",
-        "링크에 experiment_id, run_id 변수 전달 (${__field.labels.experiment_id})",
-        "패널 제목 또는 description에 \"클릭하여 상세 보기\" 안내 추가",
-        "JSON 파일 유효성 검증"
+        "src/serve/admin/CLAUDE.md에 해결 방법 및 주의사항 추가",
+        "progress.txt에 최종 해결 방법 및 학습 내용 기록",
+        "선택사항: Playwright 기반 E2E 테스트 추가 (브라우저 자동화)",
+        "README 또는 문서에 Admin UI 사용법 업데이트",
+        "Typecheck passes"
       ],
       "priority": 6,
       "passes": true,
-      "notes": "4개 패널에 드릴다운 링크 추가: id:1(Training Logs), id:2(Training Step), id:3(Latest Loss), id:4(Training Errors). 모든 패널에 description으로 '클릭하여 상세 보기' 안내 추가. experiment_id, run_id 변수 전달."
-    },
-    {
-      "id": "US-007",
-      "title": "드릴다운 워크플로우 문서화",
-      "description": "As a 팀원, I want 드릴다운 사용 방법과 문제 해결 시나리오를 문서로 제공받아 so that 효과적으로 모니터링 도구를 활용할 수 있다.",
-      "acceptanceCriteria": [
-        "docs/references/GRAFANA_DRILLDOWN_WORKFLOW.md 파일 생성",
-        "드릴다운 개념 및 시퀀스 다이어그램 포함",
-        "문제 해결 워크플로우 시나리오 4개 작성 완료",
-        "드릴다운 경로 맵 (Mermaid 다이어그램) 포함",
-        "변수 전달 규칙 테이블 작성",
-        "deployment/CLAUDE.md에 GRAFANA_DRILLDOWN_WORKFLOW.md 참조 링크 추가"
-      ],
-      "priority": 7,
-      "passes": true,
-      "notes": "문서 이미 작성 완료"
+      "notes": "문서화 완료. src/serve/admin/CLAUDE.md에 가상 필드 추가 패턴 섹션 추가. 예제 코드, 주의사항 포함. progress.txt에 전체 학습 내용 기록. 브라우저 E2E 테스트는 자동화 도구 없어 수동 테스트 권장."
     }
   ]
 }
