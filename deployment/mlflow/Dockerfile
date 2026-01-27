@@ -15,10 +15,17 @@ RUN pip install --no-cache-dir \
     psycopg2-binary \
     boto3
 
+# Create log directory
+RUN mkdir -p /logs
+
+# Copy entrypoint script
+COPY deployment/mlflow/start-mlflow.sh /app/start-mlflow.sh
+RUN chmod +x /app/start-mlflow.sh
+
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
 EXPOSE 5000
 
-CMD ["mlflow", "server", "--host", "0.0.0.0", "--port", "5000"]
+ENTRYPOINT ["/app/start-mlflow.sh"]

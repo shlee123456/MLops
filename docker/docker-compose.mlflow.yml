@@ -45,15 +45,10 @@ services:
     container_name: mlops-mlflow
     environment:
       MLFLOW_BACKEND_STORE_URI: postgresql://${POSTGRES_USER:-mlflow}:${POSTGRES_PASSWORD:-mlflow}@postgres:5432/${POSTGRES_DB:-mlflow}
+      MLFLOW_DEFAULT_ARTIFACT_ROOT: s3://mlflow/artifacts
       MLFLOW_S3_ENDPOINT_URL: http://minio:9000
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minio}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minio123}
-    command: >
-      mlflow server
-      --backend-store-uri postgresql://${POSTGRES_USER:-mlflow}:${POSTGRES_PASSWORD:-mlflow}@postgres:5432/${POSTGRES_DB:-mlflow}
-      --default-artifact-root s3://mlflow/artifacts
-      --host 0.0.0.0
-      --port 5000
     ports:
       - "${MLFLOW_PORT:-5050}:5000"
     networks:

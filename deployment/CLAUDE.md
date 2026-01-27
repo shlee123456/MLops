@@ -301,6 +301,46 @@ volumes:
 - `/health`, `/metrics` 엔드포인트는 로깅에서 제외
 - JSON 로그는 파일에만 기록, 콘솔은 개발 모드에서 컬러 출력
 
+#### MLflow 서비스 로깅
+
+MLflow 서비스는 `logs/mlflow/` 디렉토리에 로그 파일을 생성합니다.
+
+**로그 파일 경로:**
+- 파일: `/logs/mlflow_YYYYMMDD_HHMMSS.log` (호스트: `logs/mlflow/mlflow_*.log`)
+- 포맷: 텍스트 (gunicorn 기본 로그 형식)
+
+**로그 내용:**
+- MLflow 서버 시작 메시지 (gunicorn)
+- Worker 프로세스 초기화
+- 서버 바인딩 정보
+- 에러 및 예외 메시지
+
+**로그 예시:**
+```
+[2026-01-27 15:50:54 +0000] [77] [INFO] Starting gunicorn 21.2.0
+[2026-01-27 15:50:54 +0000] [77] [INFO] Listening at: http://0.0.0.0:5000 (77)
+[2026-01-27 15:50:54 +0000] [77] [INFO] Using worker: sync
+[2026-01-27 15:50:54 +0000] [78] [INFO] Booting worker with pid: 78
+```
+
+**로그 확인:**
+```bash
+# 파일 로그 확인
+tail -f logs/mlflow/mlflow_*.log
+
+# Docker 컨테이너 로그 (stdout)
+docker compose -f docker/docker-compose.mlflow.yml logs -f mlflow-server
+
+# 로그 파일 목록
+ls -lh logs/mlflow/
+```
+
+**구현 세부사항:**
+- `start-mlflow.sh` 엔트리포인트 스크립트가 MLflow 서버의 출력을 타임스탬프가 포함된 로그 파일로 리다이렉트
+- `tee` 명령으로 콘솔과 파일에 동시 출력
+- Docker Compose에서 `../logs/mlflow:/logs` 볼륨 마운트 설정
+- Dockerfile에서 `/logs` 디렉토리 사전 생성
+
 ### 아키텍처
 
 ```
