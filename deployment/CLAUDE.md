@@ -206,6 +206,8 @@ nvidia-smi
 
 ### 로깅 설정
 
+#### vLLM 서비스 로깅
+
 vLLM 서비스는 `logs/vllm/` 디렉토리에 파일 로그를 생성합니다.
 
 **로그 파일 경로:**
@@ -234,6 +236,70 @@ docker compose -f docker/docker-compose.serving.yml logs -f vllm-server
 - `start-vllm.sh` 스크립트가 각 모델의 출력을 타임스탬프가 포함된 로그 파일로 리다이렉트
 - `tee` 명령으로 콘솔과 파일에 동시 출력
 - 모델별 접두사 (`[Model1]`, `[Model2]`)로 구분
+
+#### FastAPI 서비스 로깅
+
+FastAPI 서비스는 `logs/fastapi/` 디렉토리에 구조화된 JSON 로그를 생성합니다.
+
+**로그 파일 경로:**
+- 파일: `/logs/app.log` (호스트: `logs/fastapi/app.log`)
+- 포맷: JSON Lines (각 줄이 하나의 JSON 객체)
+- 로테이션: 10MB 단위, 최대 5개 백업
+
+**로그 내용:**
+- 애플리케이션 시작/종료 이벤트
+- HTTP 요청/응답 (method, path, status_code, duration_ms)
+- Request ID 추적 (X-Request-ID 헤더)
+- 에러 및 예외 스택 트레이스
+
+**로그 필드:**
+```json
+{
+  "event": "request_completed",
+  "level": "info",
+  "logger": "http",
+  "timestamp": "2026-01-27T15:46:41.479516Z",
+  "request_id": "3b64dae4",
+  "method": "GET",
+  "path": "/docs",
+  "status_code": 200,
+  "duration_ms": 1.2,
+  "service": "fastapi",
+  "app_name": "MLOps Chatbot API"
+}
+```
+
+**로그 확인:**
+```bash
+# 파일 로그 확인 (JSON 형식)
+tail -f logs/fastapi/app.log | jq .
+
+# Docker 컨테이너 로그 (stdout)
+docker compose -f docker/docker-compose.serving.yml logs -f fastapi-server
+
+# 특정 request_id 검색
+grep "3b64dae4" logs/fastapi/app.log | jq .
+
+# 에러만 필터링
+jq 'select(.level=="error")' logs/fastapi/app.log
+```
+
+**환경변수 설정:**
+FastAPI 컨테이너의 `LOG_DIR` 환경변수가 `/logs`로 설정되어야 파일 로그가 생성됩니다.
+
+```yaml
+# docker-compose.serving.yml
+environment:
+  LOG_DIR: /logs  # 필수!
+volumes:
+  - ../logs/fastapi:/logs
+```
+
+**구현 세부사항:**
+- `src/serve/core/logging.py`의 structlog 기반 로깅 시스템
+- `RequestLoggingMiddleware`가 모든 HTTP 요청을 자동 로깅
+- `/health`, `/metrics` 엔드포인트는 로깅에서 제외
+- JSON 로그는 파일에만 기록, 콘솔은 개발 모드에서 컬러 출력
 
 ### 아키텍처
 

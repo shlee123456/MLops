@@ -22,6 +22,7 @@ services:
     volumes:
       - ../models:/models
       - ../logs/vllm:/logs
+      - ~/.cache/huggingface:/root/.cache/huggingface:ro
     ports:
       - "${MODEL_1_PORT:-8000}:${MODEL_1_PORT:-8000}"
       - "${MODEL_2_PORT:-8001}:${MODEL_2_PORT:-8001}"
@@ -59,6 +60,7 @@ services:
       DEBUG: "false"
       ENABLE_AUTH: "false"
       CORS_ORIGINS: '["*"]'
+      LOG_DIR: /logs
     volumes:
       - ../src:/app/src
       - ../logs/fastapi:/logs
