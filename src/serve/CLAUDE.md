@@ -120,3 +120,59 @@ async def chat(
 ):
     ...
 ```
+
+## 로깅 시스템 (core/logging.py)
+
+FastAPI 서비스는 구조화된 JSON 로깅을 사용합니다.
+
+### 로그 설정
+
+**로그 위치**: `logs/fastapi/app.log` (환경변수 `LOG_DIR` 기준)
+
+**필수 환경변수**:
+```bash
+LOG_DIR=/logs  # Docker 컨테이너 내부 경로
+```
+
+**로그 포맷**: JSON (structlog 기반)
+
+**주요 필드**:
+- `timestamp`: ISO 8601 형식
+- `level`: INFO, WARNING, ERROR
+- `request_id`: UUID (요청 추적용)
+- `method`: HTTP 메서드
+- `path`: 요청 경로
+- `status_code`: HTTP 상태 코드
+- `duration_ms`: 처리 시간 (밀리초)
+
+### 로깅 미들웨어
+
+`RequestLoggingMiddleware`가 모든 HTTP 요청을 자동 로깅합니다:
+- `/health`, `/metrics` 경로는 제외
+- 요청 시작/종료 시점 자동 기록
+- 에러 발생 시 스택 트레이스 포함
+
+### 로그 확인
+
+```bash
+# 실시간 로그 스트림
+tail -f logs/fastapi/app.log | jq .
+
+# 특정 request_id 추적
+grep "request_id_value" logs/fastapi/app.log | jq .
+
+# 에러만 필터링
+jq 'select(.level=="ERROR")' logs/fastapi/app.log
+```
+
+### Docker 설정
+
+`docker/docker-compose.serving.yml`:
+```yaml
+environment:
+  - LOG_DIR=/logs
+volumes:
+  - ../logs/fastapi:/logs
+```
+
+**참고**: `docs/references/LOGGING.md` 참조
