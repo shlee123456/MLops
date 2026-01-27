@@ -204,6 +204,37 @@ curl http://localhost:8001/v1/models
 nvidia-smi
 ```
 
+### 로깅 설정
+
+vLLM 서비스는 `logs/vllm/` 디렉토리에 파일 로그를 생성합니다.
+
+**로그 파일 경로:**
+- 모델 1: `/logs/model1_YYYYMMDD_HHMMSS.log`
+- 모델 2: `/logs/model2_YYYYMMDD_HHMMSS.log`
+
+**로그 내용:**
+- vLLM 서버 시작 메시지
+- 모델 로딩 진행 상황
+- API 요청/응답 로그
+- 에러 메시지
+
+**로그 확인:**
+```bash
+# 컨테이너 실행 후 호스트에서 확인
+ls -lh logs/vllm/
+
+# 실시간 로그 확인
+tail -f logs/vllm/model1_*.log
+
+# Docker 컨테이너 로그 (stdout/stderr)
+docker compose -f docker/docker-compose.serving.yml logs -f vllm-server
+```
+
+**구현 세부사항:**
+- `start-vllm.sh` 스크립트가 각 모델의 출력을 타임스탬프가 포함된 로그 파일로 리다이렉트
+- `tee` 명령으로 콘솔과 파일에 동시 출력
+- 모델별 접두사 (`[Model1]`, `[Model2]`)로 구분
+
 ### 아키텍처
 
 ```
