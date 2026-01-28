@@ -1,68 +1,67 @@
 {
   "project": "MLOps Chatbot",
-  "branchName": "feature/logging-integration-test",
-  "description": "로깅 시스템 통합 테스트 - vLLM 로그 생성 확인, Loki 설정 검증, 전체 스택 테스트",
+  "branchName": "feature/alloy-loki-fix",
+  "description": "Alloy-Loki 로그 수집 문제 해결 - 로그 파일을 읽고 있으나 Loki에 데이터 저장 안 됨",
   "userStories": [
     {
       "id": "US-001",
-      "title": "vLLM 로그 파일 생성 실제 테스트",
-      "description": "As a 개발자, I want vLLM 컨테이너를 실제로 실행하여 로그 파일이 생성되는지 확인하고 싶다 so that 이전 작업(US-001)에서 구현한 로깅 설정이 실제 환경에서 동작하는지 검증할 수 있다.",
+      "title": "Alloy JSON 처리 파이프라인 디버깅",
+      "description": "As a DevOps 엔지니어, I want Alloy의 JSON 로그 처리 파이프라인이 올바르게 작동하는지 확인하고 싶다 so that FastAPI의 JSON 로그가 Loki에 정상 저장될 수 있다.",
       "acceptanceCriteria": [
-        "docker-compose.serving.yml로 vLLM 컨테이너 기동",
-        "logs/vllm/ 디렉토리에 로그 파일 생성 확인",
-        "로그 파일에 모델 로딩 메시지 포함 여부 검증",
-        "vLLM API 엔드포인트(/v1/models)에 실제 요청 발송",
-        "로그 파일에 API 요청 로그 기록 확인",
+        "deployment/monitoring/configs/alloy/config.alloy의 loki.process.json_logs 설정 검토",
+        "FastAPI 로그 형식과 Alloy JSON 파싱 설정 일치 여부 확인",
+        "간단한 테스트 로그로 JSON 파싱 동작 검증",
+        "Alloy 로그에서 JSON 파싱 에러 또는 경고 확인",
+        "문제 발견 시 JSON expressions 또는 stage 설정 수정",
         "Typecheck passes"
       ],
       "priority": 1,
       "passes": false,
-      "notes": "vLLM 로그 설정 개선 중. HuggingFace 캐시 read-only 문제 수정, start-vllm.sh 로그 리다이렉션 방식 변경 (process substitution → subshell + pipe). Docker 이미지 재빌드 후 최종 검증 필요."
+      "notes": ""
     },
     {
       "id": "US-002",
-      "title": "Loki/Alloy 모니터링 설정 검증",
-      "description": "As a DevOps 엔지니어, I want Loki/Alloy 설정이 변경된 로그 경로를 올바르게 참조하는지 확인하고 싶다 so that 모니터링 시스템이 모든 서비스 로그를 수집할 수 있다.",
+      "title": "Loki 수집 확인 및 간단한 테스트",
+      "description": "As a 개발자, I want 최소한의 설정으로 Loki 로그 수집이 작동하는지 확인하고 싶다 so that 문제가 Alloy 설정인지 Loki 자체인지 파악할 수 있다.",
       "acceptanceCriteria": [
-        "deployment/monitoring/alloy/ 또는 promtail 설정 파일 확인",
-        "로그 경로 설정이 logs/vllm/, logs/fastapi/, logs/mlflow/를 참조하는지 검증",
-        "경로가 잘못되었거나 누락된 경우 수정",
-        "docker-compose.monitoring.yml로 모니터링 스택 기동",
-        "Loki API(/loki/api/v1/labels)로 수집 중인 로그 라벨 확인",
+        "Alloy에서 간단한 텍스트 로그 소스 추가 (JSON 파싱 없이)",
+        "텍스트 로그가 Loki에 정상 저장되는지 확인",
+        "Loki API로 쿼리하여 데이터 조회 성공 확인",
+        "JSON 처리가 문제인지, Loki 연결이 문제인지 판단",
+        "문제 원인에 따라 다음 단계 결정",
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
-      "notes": "Loki/Alloy 설정 검증 완료. 모든 로그 경로가 올바르게 설정됨. Glob 패턴 문제 발견 및 수정 - 타임스탬프 기반 파일명을 고정 파일명으로 변경. FastAPI 로그 정상 수집 확인."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-003",
-      "title": "Grafana 로그 조회 테스트",
-      "description": "As a 개발자, I want Grafana에서 모든 서비스의 로그를 조회할 수 있는지 확인하고 싶다 so that 실시간 로그 모니터링이 가능한지 검증할 수 있다.",
+      "title": "Docker stdout 로그 수집 검증",
+      "description": "As a DevOps 엔지니어, I want 파일 기반 로그 수집 대신 Docker stdout 로그 수집이 작동하는지 확인하고 싶다 so that 더 간단하고 안정적인 로그 수집 방식을 사용할 수 있다.",
       "acceptanceCriteria": [
-        "Grafana UI(http://localhost:3000)에 접근",
-        "Loki 데이터소스 연결 상태 확인",
-        "Explore 메뉴에서 {service=\"vllm\"} 쿼리 실행",
-        "Explore 메뉴에서 {service=\"fastapi\"} 쿼리 실행",
-        "Explore 메뉴에서 {service=\"mlflow\"} 쿼리 실행",
-        "각 서비스의 로그가 조회되면 성공, 조회되지 않으면 Alloy 설정 수정",
+        "Alloy의 loki.source.docker 설정이 올바르게 동작하는지 확인",
+        "FastAPI 컨테이너의 stdout 로그가 Loki에 수집되는지 검증",
+        "Grafana에서 {service=\"fastapi\"} 쿼리로 Docker 로그 조회",
+        "파일 기반 로그와 Docker 로그 중 어느 것을 사용할지 결정",
+        "선택한 방식으로 모든 서비스 로그 수집 설정",
         "Typecheck passes"
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Grafana 정상 동작, Loki 데이터소스 연결 확인. Alloy가 로그 파일 tail 중이나 Loki에 데이터 저장 안 됨. JSON 처리 문제 발견. 별도 PRD로 분리 필요."
+      "notes": ""
     },
     {
       "id": "US-004",
-      "title": "전체 스택 통합 테스트",
-      "description": "As a 시스템 관리자, I want 전체 Docker Compose 스택을 기동하여 모든 서비스가 정상 동작하는지 확인하고 싶다 so that 프로덕션 환경에 배포할 준비가 되었는지 검증할 수 있다.",
+      "title": "모든 서비스 로그 Grafana 조회 테스트",
+      "description": "As a 개발자, I want Grafana에서 모든 서비스의 로그를 조회할 수 있는지 확인하고 싶다 so that 실시간 로그 모니터링이 가능한지 검증할 수 있다.",
       "acceptanceCriteria": [
-        "docker-compose.yml(전체 스택) 또는 개별 스택 파일로 모든 서비스 기동",
-        "각 서비스 헬스체크 엔드포인트 확인 (vLLM, FastAPI, MLflow, Prometheus, Grafana, Loki)",
-        "FastAPI → vLLM 추론 요청 테스트 (curl 또는 pytest)",
-        "MLflow UI 접근 확인 (http://localhost:5050)",
-        "scripts/check_logs.sh 실행하여 모든 서비스 로그 검증",
-        "모든 서비스가 정상 동작하고 로그가 생성되면 성공",
+        "Grafana UI(http://localhost:3000)에서 Explore 메뉴 접근",
+        "{job=\"fastapi\"} 쿼리로 FastAPI 로그 조회 성공",
+        "{job=\"vllm\"} 쿼리로 vLLM 로그 조회 성공 (로그 파일 생성 시)",
+        "{job=\"mlflow\"} 쿼리로 MLflow 로그 조회 성공",
+        "각 서비스별로 최소 1개 이상의 로그 엔트리 확인",
+        "로그 내용이 올바르게 표시되는지 확인 (타임스탬프, 메시지, 레벨 등)",
         "Typecheck passes"
       ],
       "priority": 4,
@@ -71,14 +70,14 @@
     },
     {
       "id": "US-005",
-      "title": "통합 테스트 결과 문서화",
-      "description": "As a 개발자, I want 통합 테스트 결과를 문서화하고 싶다 so that 향후 배포 시 참고할 수 있다.",
+      "title": "로그 수집 문제 해결 방법 문서화",
+      "description": "As a 개발자, I want 로그 수집 문제 해결 과정과 최종 설정을 문서화하고 싶다 so that 향후 유사한 문제 발생 시 빠르게 해결할 수 있다.",
       "acceptanceCriteria": [
-        "테스트 결과를 .context/terminal/integration_test_$(date +%s).log에 기록",
-        "각 서비스별 테스트 통과/실패 상태 요약",
-        "발견된 문제와 해결 방법 기록",
-        "docs/references/LOGGING.md에 통합 테스트 섹션 추가 (선택)",
-        "deployment/CLAUDE.md에 전체 스택 기동 방법 업데이트 (필요 시)",
+        "deployment/CLAUDE.md에 로그 수집 트러블슈팅 섹션 추가",
+        "발견한 문제와 해결 방법 기록 (JSON 파싱, Loki 설정 등)",
+        "Alloy 설정 검증 방법 문서화 (로그 확인, API 테스트 등)",
+        "Grafana 로그 쿼리 예시 추가",
+        "최종 작동하는 Alloy 설정 설명 추가",
         "Typecheck passes"
       ],
       "priority": 5,
