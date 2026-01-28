@@ -24,3 +24,78 @@ Started: 2026-01-28
   - **Context**: vLLM 다중 모델 설정에서 각 모델은 독립적인 로그 파일을 가짐
 ---
 
+## 2026-01-28 00:46 - US-002
+- FastAPI 서비스 로그 파일 생성 기능 검증 및 개선 완료
+- **Files changed:**
+  - `docker/docker-compose.serving.yml`: `LOG_DIR=/logs` 환경변수 추가
+  - `deployment/CLAUDE.md`: FastAPI 로깅 설정 섹션 추가 (로그 경로, 필드, 확인 방법, 구현 세부사항)
+
+- **Learnings for future iterations:**
+  - **Pattern**: FastAPI 컨테이너도 vLLM과 동일하게 `/logs` 디렉토리를 `logs/fastapi/`에 마운트. `LOG_DIR` 환경변수가 필수.
+  - **Pattern**: structlog 기반 로깅 시스템(`src/serve/core/logging.py`)이 JSON 형식으로 `app.log` 파일 생성
+  - **Context**: `RequestLoggingMiddleware`가 모든 HTTP 요청을 자동 로깅. `/health`, `/metrics`는 제외됨
+  - **Gotcha**: Docker Compose에서 환경변수 추가 시 `restart`가 아닌 `down && up`으로 컨테이너 재생성 필요
+  - **Verification**: 로그 필드 검증 완료 - request_id, method, path, status_code, duration_ms 모두 포함
+---
+
+## 2026-01-28 00:51 - US-003
+- MLflow 서비스 로그 파일 생성 기능 구현 완료
+- **Files changed:**
+  - `deployment/mlflow/start-mlflow.sh`: 새 엔트리포인트 스크립트 생성
+    - 타임스탬프 기반 로그 파일명 생성 (mlflow_YYYYMMDD_HHMMSS.log)
+    - `tee` 명령으로 콘솔과 파일에 동시 출력
+    - stdout과 stderr 모두 캡처
+    - MLflow 서버 readiness 체크 포함
+  - `deployment/mlflow/Dockerfile`: `/logs` 디렉토리 생성, 엔트리포인트 스크립트 복사 및 실행 권한 부여
+  - `docker/docker-compose.mlflow.yml`: 중복된 command 제거, `MLFLOW_DEFAULT_ARTIFACT_ROOT` 환경변수 추가
+  - `deployment/CLAUDE.md`: MLflow 로깅 설정 섹션 추가 (로그 경로, 형식, 확인 방법, 구현 세부사항)
+
+- **Learnings for future iterations:**
+  - **Pattern**: MLflow도 vLLM, FastAPI와 동일한 로깅 패턴 사용 - `/logs` 디렉토리 생성 + 엔트리포인트 스크립트 + tee 리다이렉션
+  - **Pattern**: Docker Compose에서 중복 설정 방지 - 환경변수로 설정하고 entrypoint에서 사용
+  - **Context**: MLflow는 gunicorn으로 실행되며 기본적으로 서버 시작/worker 로그만 출력. HTTP 요청 로그는 별도 설정 필요.
+  - **Gotcha**: MLflow healthcheck 엔드포인트는 `/health`이며, readiness 확인에 사용 가능
+---
+
+## 2026-01-28 01:00 - US-004
+- Inference/System/Training 로그 디렉토리 사용 여부 점검 완료
+- **Files changed:**
+  - `docs/references/LOGGING.md`: 로그 디렉토리 사용 현황 표 추가 및 각 로그 타입별 상세 정보 업데이트
+    - 사용 현황 요약 표 추가 (6개 로그 디렉토리)
+    - Training Logs: 활성 사용 중 (학습 스크립트에서 사용)
+    - Inference Logs: 미사용 (InferenceLogger 정의만 존재)
+    - System Logs: 활성 사용 중 (GPU 모니터링, 시스템 이벤트)
+    - API Logs: 활성 사용 중 (FastAPI 서비스)
+
+- **Learnings for future iterations:**
+  - **Pattern**: `src/utils/logging_utils.py`의 `setup_structured_logger` 함수는 `{log_dir}/{log_type}/` 경로에 로그 파일 생성
+  - **Context**: `InferenceLogger`는 정의되어 있으나 실제 사용 코드 없음. 향후 vLLM 서비스에 통합 가능
+  - **Context**: Training/System 로그는 학습 스크립트(`01_lora_finetune.py`, `02_qlora_finetune.py`)에서 `TrainingLogger`, `SystemLogger` 사용
+  - **Context**: API 로그는 FastAPI의 독립적인 로깅 시스템(`src/serve/core/logging.py`)으로 관리
+  - **Context**: 모든 로그 디렉토리는 Promtail/Alloy 모니터링 설정에 포함되어 있어, 사용하지 않더라도 디렉토리 유지 필요
+  - **Gotcha**: pyenv 환경 미설치로 실제 스크립트 실행 테스트 불가. 코드 분석으로 대체
+---
+## 2026-01-28 01:05 - US-005
+- 로깅 검증 스크립트 및 문서화 완료
+- **Files changed:**
+  - `scripts/check_logs.sh`: 새로운 로그 검증 스크립트 생성
+    - 6개 서비스(vllm, fastapi, mlflow, training, system, inference) 로그 파일 검증
+    - 로그 파일 수, 크기, 최근 수정 시간 표시
+    - Docker 컨테이너 실행 상태 확인
+    - 로그 생성 방법 안내 (없는 경우)
+    - 컬러 출력으로 가독성 향상
+  - `src/serve/CLAUDE.md`: FastAPI 로깅 시스템 섹션 추가
+    - 로그 위치, 환경변수, 포맷, 주요 필드 문서화
+    - RequestLoggingMiddleware 설명
+    - 로그 확인 명령어 예시
+    - Docker 설정 예시
+  - `.context/terminal/logging_audit_*.log`: 스크립트 실행 결과 기록
+
+- **Learnings for future iterations:**
+  - **Pattern**: Bash 스크립트에서 색상 출력 시 ANSI 코드 사용 (`GREEN`, `RED`, `YELLOW` 변수 정의)
+  - **Pattern**: 로그 검증 스크립트는 `ls -t`로 최근 파일 우선 정렬, `stat`로 파일 메타데이터 추출
+  - **Pattern**: Docker 컨테이너 실행 여부는 `docker ps --format '{{.Names}}' | grep` 패턴 사용
+  - **Context**: deployment/CLAUDE.md는 US-001(vLLM), US-002(FastAPI), US-003(MLflow) 단계에서 이미 로깅 문서화 완료
+  - **Context**: docs/references/LOGGING.md는 US-004에서 로그 디렉토리 사용 현황 표 추가 완료
+  - **Gotcha**: `tee` 명령 사용 시 종료 코드가 파이프 뒷부분 명령어 기준이므로, 검증 실패 시 `exit 1` 명시 필요
+---
