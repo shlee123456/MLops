@@ -99,3 +99,6 @@ scripts/ralph/progress.txt
 scripts/ralph/prd.json
 scripts/ralph/.last-branch
 scripts/ralph/archive/
+
+# Context (터미널 로그)
+.context/
