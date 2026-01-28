@@ -76,10 +76,19 @@ loki.process "json_logs" {
   stage.json {
     expressions = {
       level     = "level",
+      event     = "event",
       message   = "message",
+      logger    = "logger",
       timestamp = "timestamp",
     }
   }
+
+  // Extract message from either "event" or "message" field
+  stage.template {
+    source   = "output"
+    template = "{{ if .event }}{{ .event }}{{ else }}{{ .message }}{{ end }}"
+  }
+
   stage.labels {
     values = {
       level = "",
@@ -144,15 +153,31 @@ loki.process "docker_json" {
   stage.json {
     expressions = {
       level     = "level",
+      event     = "event",
       message   = "message",
+      logger    = "logger",
       timestamp = "timestamp",
     }
   }
+
+  // Extract message from either "event" or "message" field
+  stage.template {
+    source   = "output"
+    template = "{{ if .event }}{{ .event }}{{ else }}{{ .message }}{{ end }}"
+  }
+
   stage.labels {
     values = {
       level = "",
     }
   }
+
+  // Add timestamp parsing for docker logs too
+  stage.timestamp {
+    source = "timestamp"
+    format = "RFC3339"
+  }
+
   forward_to = [loki.write.default.receiver]
 }
 
