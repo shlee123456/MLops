@@ -15,3 +15,35 @@ Started: Wed Jan 28 03:29:39 PM KST 2026
   - Docker logs와 file-based logs 모두 정상 작동 확인 (각각 다른 label 사용)
   - JSON 필드 추출 확인 방법: Loki API의 stream 객체에서 labels 확인
 ---
+## 2026-01-28 15:43 - US-002
+- Added plaintext log source to Alloy config to verify basic Loki connectivity without JSON processing
+- Created test log file with 10 entries and verified collection
+- Successfully queried Loki API and retrieved all 10 log entries with correct labels
+- Files changed:
+  - deployment/monitoring/configs/alloy/config.alloy (added test_plaintext source)
+- **Learnings for future iterations:**
+  - Loki basic connectivity works perfectly - the issue was JSON processing (fixed in US-001)
+  - Bypassing loki.process and sending directly to loki.write.default.receiver works for plain text
+  - Loki API query_range format: `?query={job="test"}&limit=100&start=<ns>&end=<ns>`
+  - Labels are correctly extracted from the targets configuration in loki.source.file
+  - Test log sources should forward directly to loki.write.default.receiver to isolate from processing pipelines
+  - Alloy config reload requires container restart (docker restart mlops-alloy)
+---
+## 2026-02-04 03:32 - US-003
+- Verified Docker stdout log collection works correctly with loki.source.docker
+- FastAPI container stdout logs collected successfully with labels: container="fastapi", compose_service="fastapi-server"
+- Confirmed both file-based and Docker stdout log collection methods work properly
+- Decision: Use both log collection methods (each has advantages)
+  - File-based ({job="fastapi"}): Persistent storage, survives container restarts → Production
+  - Docker stdout ({container="fastapi"}): Auto-discovery, no volume mounts → Development/Debugging
+- **Learnings for future iterations:**
+  - Alloy and Loki should be restarted together when troubleshooting log collection issues (docker restart mlops-loki mlops-alloy)
+  - Alloy's discovery.docker.containers successfully discovers containers with label filter: com.docker.compose.project=docker
+  - loki.source.docker forwards to loki.process.docker_json for JSON parsing (same as file logs)
+  - Docker container labels are automatically extracted and added as Loki labels (container, service, compose_service, compose_project)
+  - Query examples:
+    - File-based logs: {job="fastapi"}
+    - Docker stdout logs: {container="fastapi"} or {compose_service="fastapi-server"}
+  - Both methods use the same JSON parsing pipeline (loki.process) so log format is consistent
+  - Loki retention/data cleared on restart - normal for development, configure retention for production
+---

@@ -32,8 +32,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Plain text 로그 소스 추가 및 검증 완료. Loki API로 10개 로그 엔트리 조회 성공. Loki 연결 자체는 정상 작동하며, 문제는 JSON 파싱에 있었음이 확인됨 (US-001에서 수정 완료)."
     },
     {
       "id": "US-003",
@@ -48,8 +48,8 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Docker stdout 로그 수집 검증 완료. loki.source.docker가 FastAPI 컨테이너를 자동 발견하고 stdout 로그를 Loki에 수집함을 확인. 파일 기반과 Docker stdout 로그 모두 정상 작동하므로, 둘 다 사용하기로 결정: 파일 기반은 프로덕션(영구 저장), Docker stdout은 개발/디버깅(자동 발견) 용도."
     },
     {
       "id": "US-004",
