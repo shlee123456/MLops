@@ -81,8 +81,8 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "deployment/CLAUDE.md에 '로그 수집 트러블슈팅' 섹션 추가 완료. 5가지 주요 문제(JSON 파싱 불일치, Loki 연결 테스트, Docker stdout 수집, MLflow 로그 경로, plaintext 로그 처리)와 해결 방법 문서화. Alloy 로그/API, Loki API를 통한 검증 방법 상세 설명. Grafana LogQL 쿼리 예시(기본 쿼리부터 시계열 쿼리까지) 추가. 트러블슈팅 체크리스트 및 최종 작동 설정 요약 포함."
     }
   ]
 }

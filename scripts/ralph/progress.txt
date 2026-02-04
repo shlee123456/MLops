@@ -64,3 +64,25 @@ Started: Wed Jan 28 03:29:39 PM KST 2026
   - After Loki/Alloy restarts, wait ~10-15 seconds for log collection to stabilize before querying
   - Loki instant query (/loki/api/v1/query) is sufficient for testing recent logs, no need for query_range
 ---
+## 2026-02-04 03:55 - US-005
+- Documented all log collection troubleshooting steps in deployment/CLAUDE.md
+- Added comprehensive troubleshooting section covering all issues discovered in US-001 through US-004:
+  - Problem 1: FastAPI JSON log field mismatch (event vs message) - solved with stage.template
+  - Problem 2: Loki connection testing with plaintext logs
+  - Problem 3: Docker stdout log collection verification
+  - Problem 4: MLflow log file path mismatch - solved with symlinks
+  - Problem 5: Plaintext logs bypassing JSON parsing
+- Documented Alloy configuration verification methods (logs, Loki API, Alloy HTTP API)
+- Added Grafana LogQL query examples (basic, filters, JSON extraction, time series)
+- Created troubleshooting checklist with step-by-step commands
+- Summarized final working Alloy configuration architecture
+- Files changed:
+  - deployment/CLAUDE.md (added "로그 수집 트러블슈팅" section)
+- **Learnings for future iterations:**
+  - Comprehensive troubleshooting documentation should cover: problem symptoms, root cause analysis, solution steps, and verification commands
+  - Include real command examples with expected outputs for each verification step
+  - Document both working and non-working configurations to help future debugging
+  - Grafana query examples should progress from basic to advanced (labels → filters → JSON → time series)
+  - Troubleshooting checklist should follow logical order: service → files → Alloy → Loki → data verification
+  - For each common problem, document multiple solution approaches (e.g., symlinks vs wildcards vs script changes)
+---
