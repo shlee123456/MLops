@@ -45,22 +45,22 @@ loki.source.file "mlflow" {
   targets = [
     {__path__ = "/logs/mlflow/mlflow.log", job = "mlflow", service = "mlops", log_type = "mlflow"},
   ]
-  forward_to = [loki.process.json_logs.receiver]
+  forward_to = [loki.write.default.receiver]
 }
 
 // vLLM logs (model1 and model2)
 loki.source.file "vllm_model1" {
   targets = [
-    {__path__ = "/logs/vllm/model1.log", job = "vllm", service = "mlops", log_type = "vllm", model = "model1"},
+    {__path__ = "/logs/vllm/model1*.log", job = "vllm", service = "mlops", log_type = "vllm", model = "model1"},
   ]
-  forward_to = [loki.process.json_logs.receiver]
+  forward_to = [loki.write.default.receiver]
 }
 
 loki.source.file "vllm_model2" {
   targets = [
-    {__path__ = "/logs/vllm/model2.log", job = "vllm", service = "mlops", log_type = "vllm", model = "model2"},
+    {__path__ = "/logs/vllm/model2*.log", job = "vllm", service = "mlops", log_type = "vllm", model = "model2"},
   ]
-  forward_to = [loki.process.json_logs.receiver]
+  forward_to = [loki.write.default.receiver]
 }
 
 // FastAPI logs

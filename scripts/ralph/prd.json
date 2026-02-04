@@ -65,8 +65,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Loki API로 로그 조회 검증 완료 (Grafana는 Loki를 데이터소스로 사용하므로 동일한 쿼리 결과 반환). FastAPI 로그 ({job=\"fastapi\"}): JSON 형식, 메타데이터 포함. MLflow 로그 ({job=\"mlflow\"}): plaintext 형식, Gunicorn 로그 포함. vLLM 미실행으로 조건부 스킵. Alloy 설정 수정: MLflow 로그는 심볼릭 링크 사용, plaintext 로그는 JSON 파싱 우회하여 직접 Loki 전송."
     },
     {
       "id": "US-005",

@@ -47,3 +47,20 @@ Started: Wed Jan 28 03:29:39 PM KST 2026
   - Both methods use the same JSON parsing pipeline (loki.process) so log format is consistent
   - Loki retention/data cleared on restart - normal for development, configure retention for production
 ---
+## 2026-02-04 03:51 - US-004
+- Successfully verified log query functionality via Loki API (equivalent to Grafana queries)
+- FastAPI logs: {job="fastapi"} query returns JSON logs with full metadata (method, path, status_code, duration_ms, request_id, etc.)
+- MLflow logs: {job="mlflow"} query returns plaintext logs (Gunicorn startup messages, worker processes)
+- vLLM logs: Service not running, skipped (conditional acceptance criteria)
+- Both services show proper timestamps, log levels, and structured content
+- Files changed:
+  - deployment/monitoring/configs/alloy/config.alloy (MLflow log path to support symlink, changed forward_to for plaintext logs)
+- **Learnings for future iterations:**
+  - Alloy's loki.source.file requires exact file paths or existing glob patterns, not stat-compatible wildcards
+  - MLflow logs use timestamped filenames (mlflow_YYYYMMDD_HHMMSS.log), requiring symlink to mlflow.log for consistent collection
+  - Plaintext logs (MLflow, vLLM) should forward directly to loki.write.default.receiver, not through JSON processing
+  - Create symlinks inside the container that generates the logs (docker exec) to ensure proper ownership and persistence
+  - Loki API queries ({job="service"}) return the same data that Grafana Explore would show - verifying API queries validates Grafana functionality
+  - After Loki/Alloy restarts, wait ~10-15 seconds for log collection to stabilize before querying
+  - Loki instant query (/loki/api/v1/query) is sufficient for testing recent logs, no need for query_range
+---
