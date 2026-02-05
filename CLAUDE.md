@@ -256,5 +256,6 @@ git log --oneline -10
 ## 참고 문서
 
 - [CLAUDE.md 가이드라인](docs/guides/CLAUDE.md) - 문서 작성 규칙 (서브모듈)
+- [컨테이너 실행 시퀀스](docs/references/CONTAINER_SEQUENCE.md) - Docker 컨테이너 시작 순서 및 의존성
 - [로깅 가이드](docs/references/LOGGING.md) - 구조화된 로깅
 - [vLLM 가이드](docs/references/VLLM.md) - vLLM 서빙

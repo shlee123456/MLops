@@ -1,31 +1,42 @@
-FROM nvidia/cuda:12.1.0-devel-ubuntu22.04
+FROM nvidia/cuda:12.8.0-devel-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 
+# Blackwell (sm_120) 호환 설정
+# vLLM 내장 flash_attn C 확장이 cu129로 빌드되어 CUDA 12.8 드라이버와 PTX 비호환
+# FlashInfer 백엔드로 전환하여 호환성 확보
+ENV VLLM_ATTENTION_BACKEND=FLASHINFER
+
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies + Python 3.12
 RUN apt-get update && apt-get install -y \
-    python3.10 \
-    python3-pip \
+    software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y \
+    python3.12 \
+    python3.12-venv \
+    python3.12-dev \
     git \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Create symbolic links
-RUN ln -s /usr/bin/python3 /usr/bin/python
+# Set Python 3.12 as default and install pip
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1 && \
+    ln -sf /usr/bin/python3.12 /usr/bin/python && \
+    curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12
 
-# Install PyTorch with CUDA support
-RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# Install PyTorch with CUDA 12.8 support (includes sm_120 for Blackwell GPUs)
+RUN pip install --no-cache-dir \
+    torch \
+    torchvision \
+    torchaudio \
+    --index-url https://download.pytorch.org/whl/cu128
 
 # Install vLLM and dependencies
-# numpy<2 required for vllm 0.2.7 compatibility
 RUN pip install --no-cache-dir \
-    "numpy<2" \
-    vllm==0.2.7 \
-    transformers==4.36.0 \
-    accelerate==0.25.0 \
+    vllm \
     sentencepiece \
     protobuf
 

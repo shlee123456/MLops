@@ -1,6 +1,7 @@
 #!/bin/bash
 # vLLM Multi-Model Startup Script
 # 환경변수 기반으로 여러 모델을 각 GPU에서 실행
+# Updated: CUDA 12.8 + Blackwell (sm_120) 호환
 
 set -e
 
@@ -11,11 +12,14 @@ mkdir -p "$LOG_DIR"
 echo "=========================================="
 echo "vLLM Multi-Model Server Starting..."
 echo "Logs will be written to: $LOG_DIR"
+echo "CUDA Version: $(nvcc --version 2>/dev/null | grep release | awk '{print $5}' | tr -d ',')"
+echo "PyTorch Version: $(python -c 'import torch; print(torch.__version__)' 2>/dev/null || echo 'unknown')"
+echo "vLLM Version: $(python -c 'import vllm; print(vllm.__version__)' 2>/dev/null || echo 'unknown')"
 echo "=========================================="
 
 PIDS=()
 
-# 모델 1 시작 (GPU 0)
+# 모델 1 시작
 if [ "${MODEL_1_ENABLED:-false}" = "true" ] && [ -n "$MODEL_1_PATH" ]; then
     echo ""
     echo "[Model 1] Starting on GPU ${MODEL_1_GPU:-0}..."
@@ -27,12 +31,14 @@ if [ "${MODEL_1_ENABLED:-false}" = "true" ] && [ -n "$MODEL_1_PATH" ]; then
     MODEL_1_LOG="$LOG_DIR/model1.log"
     echo "  Log File: $MODEL_1_LOG"
 
-    (CUDA_VISIBLE_DEVICES=${MODEL_1_GPU:-0} python -m vllm.entrypoints.openai.api_server \
-        --model "$MODEL_1_PATH" \
+    (CUDA_VISIBLE_DEVICES=${MODEL_1_GPU:-0} vllm serve "$MODEL_1_PATH" \
         --host 0.0.0.0 \
         --port ${MODEL_1_PORT:-8000} \
         --gpu-memory-utilization ${MODEL_1_GPU_MEMORY:-0.9} \
-        --max-model-len ${MODEL_1_MAX_LEN:-4096} 2>&1 | \
+        --max-model-len ${MODEL_1_MAX_LEN:-4096} \
+        --enforce-eager \
+        --compilation-config '{"mode": 0}' \
+        --attention-backend FLASHINFER 2>&1 | \
         tee -a "$MODEL_1_LOG" | sed -u 's/^/[Model1] /') &
 
     PIDS+=($!)
@@ -41,7 +47,7 @@ else
     echo "[Model 1] Disabled or no path specified"
 fi
 
-# 모델 2 시작 (GPU 1)
+# 모델 2 시작
 if [ "${MODEL_2_ENABLED:-false}" = "true" ] && [ -n "$MODEL_2_PATH" ]; then
     echo ""
     echo "[Model 2] Starting on GPU ${MODEL_2_GPU:-1}..."
@@ -53,12 +59,14 @@ if [ "${MODEL_2_ENABLED:-false}" = "true" ] && [ -n "$MODEL_2_PATH" ]; then
     MODEL_2_LOG="$LOG_DIR/model2.log"
     echo "  Log File: $MODEL_2_LOG"
 
-    (CUDA_VISIBLE_DEVICES=${MODEL_2_GPU:-1} python -m vllm.entrypoints.openai.api_server \
-        --model "$MODEL_2_PATH" \
+    (CUDA_VISIBLE_DEVICES=${MODEL_2_GPU:-1} vllm serve "$MODEL_2_PATH" \
         --host 0.0.0.0 \
         --port ${MODEL_2_PORT:-8001} \
         --gpu-memory-utilization ${MODEL_2_GPU_MEMORY:-0.9} \
-        --max-model-len ${MODEL_2_MAX_LEN:-4096} 2>&1 | \
+        --max-model-len ${MODEL_2_MAX_LEN:-4096} \
+        --enforce-eager \
+        --compilation-config '{"mode": 0}' \
+        --attention-backend FLASHINFER 2>&1 | \
         tee -a "$MODEL_2_LOG" | sed -u 's/^/[Model2] /') &
 
     PIDS+=($!)

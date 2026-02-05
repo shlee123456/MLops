@@ -19,6 +19,8 @@ services:
       MODEL_2_PORT: ${MODEL_2_PORT:-8001}
       MODEL_2_GPU_MEMORY: ${MODEL_2_GPU_MEMORY:-0.9}
       MODEL_2_MAX_LEN: ${MODEL_2_MAX_LEN:-4096}
+      # HuggingFace 토큰 (gated 모델 접근용)
+      HUGGING_FACE_HUB_TOKEN: ${HUGGINGFACE_TOKEN:-}
     volumes:
       - ../models:/models
       - ../logs/vllm:/logs
